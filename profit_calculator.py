@@ -1,7 +1,7 @@
 
 def main():
 
-    print("Zysk wynsi:" + get_calculated_profit(10000,2))
+    print("Zysk wynsi: ", get_calculated_profit(100,2))
 
 
 # funkcja liczaca zysk z kapitalu i procentu
