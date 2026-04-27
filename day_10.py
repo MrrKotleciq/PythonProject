@@ -23,43 +23,44 @@ def main():
                                     np.where((tesla_data["SMA5"].shift(1) >= tesla_data["SMA20"].shift(1)) &
                                              (tesla_data["SMA5"] < tesla_data["SMA20"]) &
                                              (tesla_data["Close"].squeeze() < tesla_data["SMA100"]) &
-                                             (tesla_data["Zmienność"] > std_treshold), 0, np.nan)
+                                             (tesla_data["Zmienność"] > std_treshold), -1, 0)
                                     )
+    akcje = tesla_data["Sygnał"].sum()
+    
+    tesla_data.iloc[-2, tesla_data.columns.get_loc("Sygnał")] = -1 
     
 
-    tesla_data["Profit"] = np.where(tesla_data["Sygnał"].shift(1) == 1, tesla_data["Open"].squeeze() * -1, 
-                                    np.where(tesla_data["Sygnał"].shift(1) == 0, tesla_data["Open"].squeeze(), np.nan)
+    tesla_data["Zmienność"] = np.where(tesla_data["Sygnał"].shift(1) == 1, tesla_data["Open"].squeeze() * -1, 
+                                    np.where(tesla_data["Sygnał"].shift(1) == -1, tesla_data["Open"].squeeze(), 0)
                                     )
 
+    tesla_data.iloc[-1, tesla_data.columns.get_loc("Zmienność")] *= akcje
+  
+
+    tesla_data["Profit"] = tesla_data["Zmienność"].cumsum()
+
+    print(tesla_data["Profit"])
 
     tesla_data["Return"] = tesla_data["Zwrot"] * tesla_data["Sygnał"].shift(1)
 
-    tesla_data["B_Cumulative"] = (1 + tesla_data["Zwrot"]).cumprod() * 100
     tesla_data["S_Cumulative"] = (1 + tesla_data["Return"]).cumprod() * 100
 
-    plt.plot(tesla_data["B_Cumulative"], label="Hold")
-    plt.plot(tesla_data["S_Cumulative"], marker='o', label="Strategy")
+    tesla_data["Peak"] = tesla_data["S_Cumulative"].cummax()
+    tesla_data["Drawdown"] = (tesla_data["S_Cumulative"] - tesla_data["Peak"]) / tesla_data["Peak"]
+
+    fig, axs = plt.subplots(2)
+    fig.suptitle('data')
+
+    axs[0].plot(tesla_data["Close"], label="Hold")
+    axs[0].plot(tesla_data["Profit"], label="Strategy")
 
     plt.ylabel("Wartość")
     plt.xlabel("Dzień")
     plt.legend()
+
+    axs[1].plot(tesla_data["Sygnał"], linestyle='--')
     plt.show()
 
-    '''
-    plt.plot(tesla_data["SMA5"], label="SMA5")
-    plt.plot(tesla_data["SMA20"], label="SMA20")
-    plt.plot(tesla_data["SMA100"], label="SMA100", color="#D81D1D")
-    plt.plot(tesla_data["Close"], label="Close", color="#B6F19E")
-
-    plt.ylabel("Wartość")
-    plt.xlabel("Dzień")
-    plt.legend()
-    plt.show()
-    '''
-
-    #plt.plot(tesla_data["Sygnał"], marker='o', linestyle='--')
-    plt.plot(tesla_data["Profit"], marker = 'x')
-    plt.show()
-
+    print(tesla_data["Peak"])
 
 main()
