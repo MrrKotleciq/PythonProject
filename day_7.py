@@ -8,7 +8,7 @@ dane = {
 }
 
 df = pd.DataFrame(dane)
-df["return %"] = df["Cena"].pct_change() * 100
+df["Zwrot %"] = df["Cena"].pct_change() * 100
 
 srednia = df["Cena"].mean()
 zmiennosc = df["Cena"].std()

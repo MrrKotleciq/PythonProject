@@ -3,17 +3,17 @@ import numpy as np
 
 import generate_random_num
 
-def stopa_returnu(lista):
+def stopa_zwrotu(lista):
     
     print(lista)
-    lista_return = []
+    lista_zwrot = []
 
     for i in range(len(lista)-1):
-        return = (lista[i+1]-lista[i])*100/lista[i]
-        lista_return.append(return)
+        zwrot = (lista[i+1]-lista[i])*100/lista[i]
+        lista_zwrot.append(zwrot)
 
-    return lista_return
+    return lista_zwrot
 
 if __name__ == '__main__':
-    return_array = stopa_returnu(generate_random_num.generuj_losewe(80,120))
-    print(return_array)
+    zwrot_array = stopa_zwrotu(generate_random_num.generuj_losewe(80,120))
+    print(zwrot_array)

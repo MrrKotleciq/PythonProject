@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-## return z inwestycji (ROI)
+## Zwrot z inwestycji (ROI)
 '''
 dane = {
     "start" : [200,500],
@@ -73,7 +73,7 @@ dane2 = {
 asset1 = pd.DataFrame(dane1)
 asset2 = pd.DataFrame(dane2)
 
-asset1["return %"] = asset1["Cena"].pct_change() * 100
+asset1["Zwrot %"] = asset1["Cena"].pct_change() * 100
 ROI = (asset1["Cena"][len(asset1["Cena"])-1] - asset1["Cena"][0]) / asset1["Cena"][0] * 100
 mean = asset1["Cena"].mean()
 

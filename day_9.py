@@ -9,12 +9,12 @@ data = yf.download("TSLA", start="2022-12-01", end="2024-01-01")
 
 data["SMA5"] = data["Close"].rolling(5).mean()
 data["SMA20"] = data["Close"].rolling(20).mean()
-data["return"] = data["Close"].pct_change()
+data["Zwrot"] = data["Close"].pct_change()
 
 data["signal"] = np.where(data["SMA5"] > data["SMA20"], 1, 0)
-data["Return"] = data["return"] * data["signal"]
+data["Return"] = data["Zwrot"] * data["signal"]
 
-data["B_Cumulative"] = (1 + data["return"]).cumprod() * 100
+data["B_Cumulative"] = (1 + data["Zwrot"]).cumprod() * 100
 data["S_Cumulative"] = (1 + data["Return"]).cumprod() * 100
 
 # Test

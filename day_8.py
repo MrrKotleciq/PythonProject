@@ -5,7 +5,7 @@ import numpy as np
 apple_data = yf.download("AAPL", start="2023-01-01", end="2024-01-01")
 data = yf.download("TSLA", start="2023-01-01", end="2024-01-01")
 
-apple_data["return %"] = apple_data["Close"].pct_change() * 100
+apple_data["Zwrot %"] = apple_data["Close"].pct_change() * 100
 apple_data["SMA10"] = apple_data["Close"].rolling(10).mean()
 apple_mean = apple_data["Close"].mean()
 apple_std = apple_data["Close"].std()
@@ -13,7 +13,7 @@ apple_std = apple_data["Close"].std()
 print("\nŚrednia", apple_mean,
       "\nZmienność", apple_std)
 
-data["return %"] = data["Close"].pct_change() * 100
+data["Zwrot %"] = data["Close"].pct_change() * 100
 data["SMA10"] = data["Close"].rolling(10).mean()
 tesla_mean = data["Close"].mean()
 tesla_std = data["Close"].std()
@@ -33,7 +33,7 @@ plt.ylabel("Cena")
 plt.legend()
 plt.show()
 
-corr = np.corrcoef(apple_data["return %"].dropna(), data["return %"].dropna())
+corr = np.corrcoef(apple_data["Zwrot %"].dropna(), data["Zwrot %"].dropna())
 print("\nkorelacja pomiędzy apple i tesla \n", corr)
 
 '''

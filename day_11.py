@@ -11,7 +11,7 @@ def main():
     data["SMA5"] = data["Close"].rolling(5).mean()
     data["SMA20"] = data["Close"].rolling(20).mean()
     data["SMA100"] = data["Close"].rolling(100).mean()
-    data["return"] = data["Close"].pct_change()
+    data["Zwrot"] = data["Close"].pct_change()
     data["Zmienność"] = data["Close"].rolling(10).std()
 
     #print(data["Zmienność"])
@@ -33,9 +33,9 @@ def main():
     data["position"] = data["position"].fillna(0)
 
     
-    data["Return"] = data["return"] * data["position"].shift(1)
+    data["Return"] = data["Zwrot"] * data["position"].shift(1)
 
-    data["B_Cumulative"] = (1 + data["return"]).cumprod() * 100
+    data["B_Cumulative"] = (1 + data["Zwrot"]).cumprod() * 100
     data["S_Cumulative"] = (1 + data["Return"]).cumprod() * 100
 
     #plt.plot(data["position"], label="position")
