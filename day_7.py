@@ -8,14 +8,14 @@ dane = {
 }
 
 df = pd.DataFrame(dane)
-df["Zwrot %"] = df["Cena"].pct_change() * 100
+df["return %"] = df["Cena"].pct_change() * 100
 
 srednia = df["Cena"].mean()
 zmiennosc = df["Cena"].std()
 
 df["SMA3"] = df["Cena"].rolling(5).mean()
 
-df["Sygnał"] = np.where(df["Cena"] > df["SMA3"], 1, 0)
+df["signal"] = np.where(df["Cena"] > df["SMA3"], 1, 0)
 
 print(df)
 print("Średnia: ", srednia)

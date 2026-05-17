@@ -3,16 +3,16 @@ import numpy as np
 
 import profit_calculator
 import generate_random_num
-import zwrot_proc
+import return_proc
 
 if __name__ == '__main__':
 
     lista_cen = generate_random_num.generuj_losewe(40,75)
 
-    zwrot = zwrot_proc.stopa_zwrotu(lista_cen)
+    return = return_proc.stopa_returnu(lista_cen)
 
     srednia = np.mean(lista_cen)
-    zmiennosc = np.std(zwrot)
+    zmiennosc = np.std(return)
 
     print(lista_cen)
     print("Średnia cen to:", srednia)

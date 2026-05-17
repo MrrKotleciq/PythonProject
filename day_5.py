@@ -20,12 +20,12 @@ plt.ylabel("Cena")
 
 plt.show()'''
 
-df["Zwrot %"] = df["Cena"].pct_change() * 100
+df["return %"] = df["Cena"].pct_change() * 100
 
 print(df)
 
-plt.hist(df["Zwrot %"].dropna(), bins = 7)
-plt.title("Histogram Zwrotów")
+plt.hist(df["return %"].dropna(), bins = 7)
+plt.title("Histogram returnów")
 plt.show()
 
 plt.plot(df["Dzień"], df["Cena"], label= "cena")
