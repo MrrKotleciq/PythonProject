@@ -15,7 +15,7 @@ zmiennosc = df["Cena"].std()
 
 df["SMA3"] = df["Cena"].rolling(5).mean()
 
-df["Sygnał"] = np.where(df["Cena"] > df["SMA3"], 1, 0)
+df["signal"] = np.where(df["Cena"] > df["SMA3"], 1, 0)
 
 print(df)
 print("Średnia: ", srednia)
