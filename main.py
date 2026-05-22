@@ -20,8 +20,7 @@ def main():
                                     (data["SMA5"] > data["SMA20"]) & 
                                     (data["Close"].squeeze() > data["SMA100"]), 1, 
                                     np.where((data["SMA5"].shift(1) >= data["SMA20"].shift(1)) &
-                                             (data["SMA5"] < data["SMA20"]), -1, 0)
-                                    )
+                                             (data["SMA5"] < data["SMA20"]), -1, 0))
     
     data["position"] = data["signal"].replace({
         1: 1,
