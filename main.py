@@ -1,3 +1,5 @@
+# 13.0.0
+
 import os
 import yfinance as yf
 import pandas as pd
