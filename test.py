@@ -1,11 +1,10 @@
-import pandas as pd
-
-df = pd.DataFrame({
-    "position": [0,0,1,1,1,0,0,1]
-}, index=pd.date_range("2025-01-01", periods=8))
-
-changes = df["position"] != df["position"].shift(1)
-
-changes_df = df[changes].iloc[1:]
-
-print(changes_df)
+def fun(input):
+    
+    name = input
+    name_df = f"{name}_df"
+    
+    f"{name_df}" = "lubie placki"
+    
+    print(f"{name_df}")
+    
+fun("trade")
