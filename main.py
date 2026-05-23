@@ -1,5 +1,3 @@
-# 13.0.0
-
 import os
 import yfinance as yf
 import pandas as pd
@@ -10,7 +8,7 @@ def main(ticker):
     
 ######## ticker data - main dataframe
 
-    data = yf.download(ticker, start="2022-12-01", end="2026-01-01")
+    data = yf.download(ticker, start="2020-12-01", end="2026-01-01")
 
     data["SMA5"] = data["Close"].rolling(5).mean()
     data["SMA20"] = data["Close"].rolling(20).mean()
@@ -156,6 +154,7 @@ def main(ticker):
 
 ######## wykresy
 
+    #plt.plot(data["signal"], label="Signal")
     plt.plot(data["B_Cumulative"], label="Hold")
     plt.plot(data["S_Cumulative"], label="Strategy")
     plt.plot(data["R_Cumulative"], label="Random")
@@ -189,12 +188,25 @@ def create_trade_log(name, df):
             "Exit Date": df.index[i+1],
             "Entry Price": round(entry_price, 5),
             "Exit Price": round(exit_price, 5),
-            "PnL": f"{ret}%",
+            "PnL [%]": ret,
             "Duration": df.index[i+1] - df.index[i],
             "Win/Loss" : int(ret > 0)
         })
     
     tab_df = pd.DataFrame(tab)
+    
+    summary = {
+        "Entry Date": "-",
+        "Exit Date": "-",
+        "Entry Price": "-",
+        "Exit Price": "-",
+        "PnL [%]": tab_df["PnL [%]"].mean(),
+        "Duration": tab_df["Duration"].sum(),
+        "Win/Loss" : int(tab_df["PnL [%]"].mean() > 0)
+    }
+    
+    tab_df = pd.concat([tab_df, pd.DataFrame([summary])], ignore_index=True)
+    
     tab_df.to_excel(fr"files\{name}.xlsx")
     
     return tab_df
