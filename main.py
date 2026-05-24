@@ -18,127 +18,111 @@ def main(ticker):
 
 ########
 
-######## position - data
+######## Buy and Hold - data
 
-    data["signal"] = np.where((data["SMA5"].shift(1) <= data["SMA20"].shift(1)) & 
+    BH_df = pd.DataFrame()
+    BH_df["Close"] = data["Close"]
+    BH_df["Open"] = data["Open"]
+    BH_df["Zwrot"] = data["Zwrot"]
+    BH_df["signal"] = np.where(BH_df.index == BH_df.index[0], 1, 
+                                np.where(BH_df.index == BH_df.index[-1], -1, 0))
+    
+    BH_df["position"] = get_pos_df(BH_df)
+
+    BH_changes = BH_df["position"] != BH_df["position"].shift(1)
+    BH_pos_df = BH_df[BH_changes]
+
+    if os.path.exists("files\\BH_pos.xlsx"):
+        os.remove("files\\BH_pos.xlsx")
+         
+    BH_pos_df.to_excel(r"files\\BH_pos.xlsx")
+    
+    BH_trade_log_df = create_trade_log("BH_trade_log", BH_pos_df)
+    
+    BH_df["Return"] = BH_df["Zwrot"] * BH_df["position"].shift(1)
+    BH_df["Cumulative"] = (1 + BH_df["Return"]).cumprod() * 100
+    
+    wyniki = []
+    wyniki = append_resaults(wyniki, BH_df, BH_trade_log_df, "Buy & Hold Strategy")
+    
+########
+
+######## SMA position - data
+
+    sma_df = pd.DataFrame()
+    sma_df["Close"] = data["Close"]
+    sma_df["Open"] = data["Open"]
+    sma_df["Zwrot"] = data["Zwrot"]
+    sma_df["signal"] = np.where((data["SMA5"].shift(1) <= data["SMA20"].shift(1)) & 
                                     (data["SMA5"] > data["SMA20"]) & 
                                     (data["Close"].squeeze() > data["SMA100"]), 1, 
                                     np.where((data["SMA5"].shift(1) >= data["SMA20"].shift(1)) &
                                              (data["SMA5"] < data["SMA20"]), -1, 0))
     
-    data["position"] = data["signal"].replace({
-        1: 1,
-        -1: 0,
-        0: np.nan
-    })
-
-    data["position"] = data["position"].ffill()
-    data["position"] = data["position"].fillna(0)
+    sma_df["position"] = get_pos_df(sma_df)
     
-    changes = data["position"] != data["position"].shift(1)
-    position_df = data[changes].iloc[1:]
+    sma_changes = sma_df["position"] != sma_df["position"].shift(1)
+    sma_pos_df = sma_df[sma_changes].iloc[1:]
     
-    position_df.drop(columns=["High","Low","Volume","SMA5","SMA20","SMA100","Zwrot","Zmienność"], inplace=True)
+    #print(sma_pos_df)
     
-    #print(position_df)
-    
-    if os.path.exists("files\\pos.xlsx"):
-        os.remove("files\\pos.xlsx")
+    if os.path.exists("files\\sma_pos.xlsx"):
+        os.remove("files\\sma_pos.xlsx")
          
-    position_df.to_excel(r"files\\pos.xlsx")
+    sma_pos_df.to_excel(r"files\\sma_pos.xlsx")
     
 ########
 
 ######## trade_log DataFrame
 
-    trade_log_df = create_trade_log("strategy_trade_log", position_df)
+    sma_trade_log_df = create_trade_log("SMA_trade_log", sma_pos_df)
 
 ########
 
 ######## Strategy - data
 
-    data["Return"] = data["Zwrot"] * data["position"].shift(1)
-    data["S_Cumulative"] = (1 + data["Return"]).cumprod() * 100
+    sma_df["Return"] = sma_df["Zwrot"] * sma_df["position"].shift(1)
+    sma_df["Cumulative"] = (1 + sma_df["Return"]).cumprod() * 100
 
-    strategy_return = round(data["S_Cumulative"].iloc[-1], 2)
-    strategy_max_drawdown = round(data["S_Cumulative"].min(), 2)
-    strategy_peak = round(data["S_Cumulative"].max(), 2)
-    strategy_exposure = round(data["position"].mean()*100, 2)
-    strategy_trades = (data["signal"] > 0).sum()
-    strategy_overtrading = round(strategy_trades / len(data), 2)
-    Strategy_sharpe_ratio = round(data["Return"].mean()/data["Return"].std() * np.sqrt(252), 2)
-    strategy_winrate = trade_log_df["Win/Loss"].sum() / len(trade_log_df)
-    strategy_winrate = round(strategy_winrate,2)
-
-########
-
-######## Buy and Hold - data
-
-    data["B_Cumulative"] = round((1 + data["Zwrot"]).cumprod() * 100, 2)
-    BH_return = round(data["B_Cumulative"].iloc[-1], 2)
-    BH_max_drawdown = round(data["B_Cumulative"].min(), 2)
-    BH_peak = round(data["B_Cumulative"].max(), 2)
-    BH_sharpe_ratio = round(data["Zwrot"].mean()/data["Zwrot"].std() * np.sqrt(252), 2)
-
+    wyniki = append_resaults(wyniki, sma_df, sma_trade_log_df, "SMA Strategy")
+    
 ########
 
 ######## random strategy data 
 
-    data["Random_Signal"] = np.random.randint(-1, 2, size=len(data))
-    data["Random_Position"] = data["Random_Signal"].replace({
-        1: 1,
-        -1: 0,
-        0: np.nan
-    })
-    data["Random_Position"] = data["Random_Position"].ffill()
-    data["Random_Position"] = data["Random_Position"].fillna(0)
-    data["Random_Return"] = data["Zwrot"] * data["Random_Position"].shift(1)
-    data["R_Cumulative"] = (1 + data["Random_Return"]).cumprod() * 100
+    r_df = pd.DataFrame()
+    r_df["Close"] = data["Close"]
+    r_df["Open"] = data["Open"]
+    r_df["Zwrot"] = data["Zwrot"]
+    r_df["signal"] = np.random.randint(-1, 2, size=len(r_df))
 
-    r_changes = data["Random_Position"] != data["Random_Position"].shift(1)
-    r_position_df = data[r_changes].iloc[1:]
+    r_df["position"] = get_pos_df(r_df)
     
-    r_position_df.drop(columns=["High","Low","Volume","SMA5","SMA20","SMA100","Zwrot","Zmienność"], inplace=True)
+    r_df["Return"] = r_df["Zwrot"] * r_df["position"].shift(1)
+    r_df["Cumulative"] = (1 + r_df["Return"]).cumprod() * 100
+
+    r_changes = r_df["position"] != r_df["position"].shift(1)
+    r_position_df = r_df[r_changes].iloc[1:]
 
 ######## random_trade_log DataFrame
 
     r_trade_log_df = create_trade_log("r_s_trade_log", r_position_df)
 
-########
+######## Random Strategy - data
 
-    random_return = round(data["R_Cumulative"].iloc[-1], 2)
-    random_max_drawdown = round(data["R_Cumulative"].min(), 2)
-    random_peak = round(data["R_Cumulative"].max(), 2)
-    random_exposure = round(data["Random_Position"].mean() * 100, 2)
-    random_trades = ((data["Random_Signal"] > 0).sum())
-    random_overtrading = round(random_trades / len(data), 2)
-    random_sharpe_ratio = round(data["Random_Return"].mean()/data["Random_Return"].std() * np.sqrt(252), 2)
-    random_winrate = r_trade_log_df["Win/Loss"].sum() / len(r_trade_log_df)
-    random_winrate = round(random_winrate, 2)
+    wyniki = append_resaults(wyniki, r_df, r_trade_log_df, "Random Strategy")
 
 ########
 
 ######## wyniki
 
-    wyniki = {
-        "Strategia" : ["Buy and Hold", "SMA Strategy", "Random Strategy"],
-        "Final return [%]" : [BH_return, strategy_return, random_return],
-        "Sharpe" : [BH_sharpe_ratio, Strategy_sharpe_ratio, random_sharpe_ratio],
-        "Max Drawdown [%]" : [BH_max_drawdown, strategy_max_drawdown, random_max_drawdown],
-        "Peak [%]" : [BH_peak, strategy_peak, random_peak],
-        "Exposure [%]" : [100, strategy_exposure, random_exposure],
-        "Trades" : [1, strategy_trades, random_trades],
-        "Overtrading" : ["-", strategy_overtrading, random_overtrading],
-        "Win rate" : [int(data["Open"].index[0] < data["Close"].index[-1]), strategy_winrate, random_winrate]
-    }
-
-    sheet = pd.DataFrame(wyniki)
-    print(sheet)
-    #print("Profitable strategy active trades: {:.2f}%".format(winrate))
-    #print("Profitable random strategy active trades: {:.2f}%".format(random_winrate))
+    wyniki_df = pd.DataFrame(wyniki)
+    print(wyniki_df)
     
-    os.makedirs(r"files", exist_ok=True)
-    sheet.to_excel(r"files\wyniki.xlsx")
+    if os.path.exists("files\\wyniki.xlsx"):
+        os.remove("files\\wyniki.xlsx")
+        
+    wyniki_df.to_excel(r"files\wyniki.xlsx")
 
 ########
 
@@ -151,13 +135,12 @@ def main(ticker):
     
 ########
 
-
 ######## wykresy
 
-    #plt.plot(data["signal"], label="Signal")
-    plt.plot(data["B_Cumulative"], label="Hold")
-    plt.plot(data["S_Cumulative"], label="Strategy")
-    plt.plot(data["R_Cumulative"], label="Random")
+    #plt.plot(sma_df["signal"], label="Signal")
+    plt.plot(BH_df["Cumulative"], label="Hold")
+    plt.plot(sma_df["Cumulative"], label="Strategy")
+    plt.plot(r_df["Cumulative"], label="Random")
 
     plt.ylabel("Wartość")
     plt.xlabel("Dzień")
@@ -171,26 +154,48 @@ def main(ticker):
 
 ######## functions
 
-def append_resaults():
-    return()
+def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str):
+    
+    s_return = round(strategy_df["Cumulative"].iloc[-1], 2)
+    max_drawdown = round(strategy_df["Cumulative"].min(), 2)
+    peak = round(strategy_df["Cumulative"].max(), 2)
+    exposure = round(strategy_df["position"].mean()*100, 2)
+    trades = (strategy_df["signal"] > 0).sum()
+    overtrading = round(trades / len(strategy_df), 2)
+    sharpe_ratio = round(strategy_df["Return"].mean()/strategy_df["Return"].std() * np.sqrt(252), 2)
+    winrate = round(s_trade_log_df["Win/Loss"].sum() / len(s_trade_log_df), 2)
+    
+    tab.append({
+        "Strategia" : strategia,
+        "Final return [%]" : s_return,
+        "Sharpe" : sharpe_ratio,
+        "Max Drawdown [%]" : max_drawdown,
+        "Peak [%]" : peak,
+        "Exposure [%]" : exposure,
+        "Trades" : trades,
+        "Overtrading" : overtrading,
+        "Win rate" : winrate
+    })
+    
+    return tab
 
 def create_trade_log(name, df):
     
     tab = []
     
     for i in range(0, int(np.floor(len(df)-1)), 2):
-        entry_price = df["Open"].iloc[i].values[0]
-        exit_price = df["Close"].iloc[i+1].values[0]
+        entry_price = df["Open"].squeeze().iloc[i]
+        exit_price = df["Close"].squeeze().iloc[i+1]
         ret = round((exit_price-entry_price)/entry_price*100, 2)
         
         tab.append({
-            "Entry Date": df.index[i],
-            "Exit Date": df.index[i+1],
+            "Entry Date": entry_price,
+            "Exit Date": exit_price,
             "Entry Price": round(entry_price, 5),
             "Exit Price": round(exit_price, 5),
             "PnL [%]": ret,
             "Duration": df.index[i+1] - df.index[i],
-            "Win/Loss" : int(ret > 0)
+            "Win/Loss" : ret > 0
         })
     
     tab_df = pd.DataFrame(tab)
@@ -211,9 +216,20 @@ def create_trade_log(name, df):
     
     return tab_df
 
+def get_pos_df(df):
+    
+    df["position"] = df["signal"].replace({
+        1: 1,
+        -1: 0,
+        0: np.nan
+    })
+
+    df["position"] = df["position"].ffill()
+    df["position"] = df["position"].fillna(0)
+
+    return df["position"]
+    
 ########
 
-
-
-
+os.makedirs(r"files", exist_ok=True)
 main("TSLA")
