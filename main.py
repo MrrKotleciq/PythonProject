@@ -6,6 +6,17 @@ import numpy as np
     
 def main(ticker):    
     
+######## Constants    
+
+    cost_per_trade = 0.002      # working cost - just for testing
+#    cost_per_trade = 0.000      # (0.0%) on xtb for cash flow less then 100k euro per month
+#    cost_per_trade = 0.002      # (0.2%) on xtb for cash flow grater then 100k euro per month
+#    cost_per_trade = 0.001      # (0.1%) on binance
+
+    slippage_cost = 0.0002      # simplified slippage cost
+
+########
+    
 ######## ticker data - main dataframe
 
     data = yf.download(ticker, start="2020-12-01", end="2026-01-01")
@@ -37,13 +48,12 @@ def main(ticker):
          
     BH_pos_df.to_excel(r"files\\BH_pos.xlsx")
     
-    BH_trade_log_df = create_trade_log("BH_trade_log", BH_pos_df)
+    BH_trade_log_df = create_trade_log("BH_trade_log", BH_pos_df, cost_per_trade)
     
     BH_df["Return"] = BH_df["Zwrot"] * BH_df["position"].shift(1)
-    BH_df["Cumulative"] = (1 + BH_df["Return"]).cumprod() * 100
     
     wyniki = []
-    wyniki = append_resaults(wyniki, BH_df, BH_trade_log_df, "Buy & Hold Strategy")
+    wyniki = append_resaults(wyniki, BH_df, BH_trade_log_df, "Buy & Hold Strategy", BH_changes, cost_per_trade + slippage_cost)
     
 ########
 
@@ -60,31 +70,18 @@ def main(ticker):
                                              (data["SMA5"] < data["SMA20"]), -1, 0))
     
     sma_df["position"] = get_pos_df(sma_df)
-    
-    sma_changes = sma_df["position"] != sma_df["position"].shift(1)
+    sma_changes = sma_df["position"] != sma_df["position"].shift(1)    
     sma_pos_df = sma_df[sma_changes].iloc[1:]
-    
-    #print(sma_pos_df)
     
     if os.path.exists("files\\sma_pos.xlsx"):
         os.remove("files\\sma_pos.xlsx")
          
     sma_pos_df.to_excel(r"files\\sma_pos.xlsx")
-    
-########
+    sma_trade_log_df = create_trade_log("SMA_trade_log", sma_pos_df, cost_per_trade)
 
-######## trade_log DataFrame
+    sma_df["Return"] = sma_df["Zwrot"] * sma_df["position"]
 
-    sma_trade_log_df = create_trade_log("SMA_trade_log", sma_pos_df)
-
-########
-
-######## Strategy - data
-
-    sma_df["Return"] = sma_df["Zwrot"] * sma_df["position"].shift(1)
-    sma_df["Cumulative"] = (1 + sma_df["Return"]).cumprod() * 100
-
-    wyniki = append_resaults(wyniki, sma_df, sma_trade_log_df, "SMA Strategy")
+    wyniki = append_resaults(wyniki, sma_df, sma_trade_log_df, "SMA Strategy", sma_changes, cost_per_trade + slippage_cost)
     
 ########
 
@@ -97,20 +94,18 @@ def main(ticker):
     r_df["signal"] = np.random.randint(-1, 2, size=len(r_df))
 
     r_df["position"] = get_pos_df(r_df)
-    
-    r_df["Return"] = r_df["Zwrot"] * r_df["position"].shift(1)
-    r_df["Cumulative"] = (1 + r_df["Return"]).cumprod() * 100
-
     r_changes = r_df["position"] != r_df["position"].shift(1)
     r_position_df = r_df[r_changes].iloc[1:]
+    
+    r_df["Return"] = r_df["Zwrot"] * r_df["position"]
 
 ######## random_trade_log DataFrame
 
-    r_trade_log_df = create_trade_log("r_s_trade_log", r_position_df)
+    r_trade_log_df = create_trade_log("r_s_trade_log", r_position_df, cost_per_trade)
 
 ######## Random Strategy - data
 
-    wyniki = append_resaults(wyniki, r_df, r_trade_log_df, "Random Strategy")
+    wyniki = append_resaults(wyniki, r_df, r_trade_log_df, "Random Strategy", r_changes, cost_per_trade + slippage_cost)
 
 ########
 
@@ -138,9 +133,9 @@ def main(ticker):
 ######## wykresy
 
     #plt.plot(sma_df["signal"], label="Signal")
-    plt.plot(BH_df["Cumulative"], label="Hold")
-    plt.plot(sma_df["Cumulative"], label="Strategy")
-    plt.plot(r_df["Cumulative"], label="Random")
+    plt.plot(BH_df["cumulative"], label="Hold")
+    plt.plot(sma_df["cumulative"], label="Strategy")
+    plt.plot(r_df["cumulative"], label="Random")
 
     plt.ylabel("Wartość")
     plt.xlabel("Dzień")
@@ -154,11 +149,14 @@ def main(ticker):
 
 ######## functions
 
-def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str):
+def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, strategy_changes, cost):
     
-    s_return = round(strategy_df["Cumulative"].iloc[-1], 2)
-    max_drawdown = round(strategy_df["Cumulative"].min(), 2)
-    peak = round(strategy_df["Cumulative"].max(), 2)
+    strategy_df["Return"] = np.where(strategy_changes, strategy_df["Return"] - cost, strategy_df["Return"])
+    strategy_df["cumulative"] = (1 + strategy_df["Return"]).cumprod() * 100
+    
+    s_return = round(strategy_df["cumulative"].iloc[-1], 2)
+    max_drawdown = round(strategy_df["cumulative"].min(), 2)
+    peak = round(strategy_df["cumulative"].max(), 2)
     exposure = round(strategy_df["position"].mean()*100, 2)
     trades = (strategy_df["signal"] > 0).sum()
     overtrading = round(trades / len(strategy_df), 2)
@@ -179,18 +177,18 @@ def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str):
     
     return tab
 
-def create_trade_log(name, df):
+def create_trade_log(name, df, cost):
     
     tab = []
     
     for i in range(0, int(np.floor(len(df)-1)), 2):
-        entry_price = df["Open"].squeeze().iloc[i]
+        entry_price = df["Close"].squeeze().iloc[i]
         exit_price = df["Close"].squeeze().iloc[i+1]
-        ret = round((exit_price-entry_price)/entry_price*100, 2)
+        ret = round((exit_price - entry_price - (exit_price*cost + entry_price*cost)) / entry_price*100 , 2) # return with included trade cost
         
         tab.append({
-            "Entry Date": entry_price,
-            "Exit Date": exit_price,
+            "Entry Date": df.index[i],
+            "Exit Date": df.index[i+1],
             "Entry Price": round(entry_price, 5),
             "Exit Price": round(exit_price, 5),
             "PnL [%]": ret,
@@ -218,7 +216,7 @@ def create_trade_log(name, df):
 
 def get_pos_df(df):
     
-    df["position"] = df["signal"].replace({
+    df["position"] = df["signal"].shift(1).replace({
         1: 1,
         -1: 0,
         0: np.nan
