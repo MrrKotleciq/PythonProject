@@ -130,6 +130,26 @@ def main(ticker):
     
 ########
 
+######## sanity check
+
+    # main_data_na = data.isna().sum()
+    # main_data_index_check = data.sort_index() 
+    
+    # sma_df_na = sma_df.isna().sum()
+    # sma_df_index_check = sma_df.sort_index
+    # sma_pos_nan_count = sma_pos_df.isna().sum()
+    # sma_pos_df_index_check = sma_pos_df.sort_index()
+    
+    # print(main_data_na)
+    # print(main_data_index_check)
+    # print(sma_df_na)
+    # print(sma_df_index_check)
+    # print(sma_pos_nan_count)
+    # print(sma_pos_df_index_check)
+
+########
+
+
 ######## wykresy
 
     #plt.plot(sma_df["signal"], label="Signal")
@@ -153,6 +173,8 @@ def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, strategy_c
     
     strategy_df["Return"] = np.where(strategy_changes, strategy_df["Return"] - cost, strategy_df["Return"])
     strategy_df["cumulative"] = (1 + strategy_df["Return"]).cumprod() * 100
+    
+    
     
     s_return = round(strategy_df["cumulative"].iloc[-1], 2)
     max_drawdown = round(strategy_df["cumulative"].min(), 2)
@@ -193,7 +215,8 @@ def create_trade_log(name, df, cost):
             "Exit Price": round(exit_price, 5),
             "PnL [%]": ret,
             "Duration": df.index[i+1] - df.index[i],
-            "Win/Loss" : ret > 0
+            "Win/Loss" : ret > 0,
+            "Costs [%]" : 2 * cost * 100
         })
     
     tab_df = pd.DataFrame(tab)
@@ -205,7 +228,8 @@ def create_trade_log(name, df, cost):
         "Exit Price": "-",
         "PnL [%]": tab_df["PnL [%]"].mean(),
         "Duration": tab_df["Duration"].sum(),
-        "Win/Loss" : int(tab_df["PnL [%]"].mean() > 0)
+        "Win/Loss" : int(tab_df["PnL [%]"].mean() > 0),
+        "Costs [%]" : tab_df["Costs [%]"].sum()
     }
     
     tab_df = pd.concat([tab_df, pd.DataFrame([summary])], ignore_index=True)
