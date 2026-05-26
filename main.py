@@ -3,9 +3,19 @@ import yfinance as yf
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from enum import Enum
     
-def main(ticker):    
-    
+signal = {
+    "SELL"  : -1,
+    "BUY"   : 1
+}  
+
+print(signal["SELL"])
+print(signal["BUY"])
+
+
+def main(ticker):      
+
 ######## Constants    
 
     cost_per_trade = 0.002      # working cost - just for testing
@@ -15,17 +25,21 @@ def main(ticker):
 
     slippage_cost = 0.0002      # simplified slippage cost
 
+    ATR_span = 14
+    stop_loss_level = 5 # [%]
+    
 ########
     
 ######## ticker data - main dataframe
 
     data = yf.download(ticker, start="2020-12-01", end="2026-01-01")
 
-    data["SMA5"] = data["Close"].rolling(5).mean()
-    data["SMA20"] = data["Close"].rolling(20).mean()
+    data["SMA5"] = data["Close"].rolling(12).mean()
+    data["SMA20"] = data["Close"].rolling(25).mean()
     data["SMA100"] = data["Close"].rolling(100).mean()
     data["Zwrot"] = data["Close"].pct_change()
-    data["Zmienność"] = data["Close"].rolling(10).std()
+    data["ATR"] = (data["Close"] - data["Close"].shift(1)).abs().rolling(ATR_span).mean()
+    data["volality"] = data["Close"].rolling(20).std()
 
 ########
 
@@ -69,7 +83,7 @@ def main(ticker):
                                     np.where((data["SMA5"].shift(1) >= data["SMA20"].shift(1)) &
                                              (data["SMA5"] < data["SMA20"]), -1, 0))
     
-    sma_df["position"] = get_pos_df(sma_df)
+    sma_get_pos_df(sma_df, stop_loss_level)
     sma_changes = sma_df["position"] != sma_df["position"].shift(1)    
     sma_pos_df = sma_df[sma_changes].iloc[1:]
     
@@ -152,10 +166,11 @@ def main(ticker):
 
 ######## wykresy
 
-    #plt.plot(sma_df["signal"], label="Signal")
+    # plt.plot(sma_df["signal"], label="Signal")
     plt.plot(BH_df["cumulative"], label="Hold")
     plt.plot(sma_df["cumulative"], label="Strategy")
     plt.plot(r_df["cumulative"], label="Random")
+    # plt.plot(data["ATR"], label="ATR")
 
     plt.ylabel("Wartość")
     plt.xlabel("Dzień")
@@ -183,7 +198,7 @@ def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, strategy_c
     trades = (strategy_df["signal"] > 0).sum()
     overtrading = round(trades / len(strategy_df), 2)
     sharpe_ratio = round(strategy_df["Return"].mean()/strategy_df["Return"].std() * np.sqrt(252), 2)
-    winrate = round(s_trade_log_df["Win/Loss"].sum() / len(s_trade_log_df), 2)
+   # winrate = round(s_trade_log_df["Win/Loss"].sum() / len(s_trade_log_df), 2)
     
     tab.append({
         "Strategia" : strategia,
@@ -194,7 +209,7 @@ def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, strategy_c
         "Exposure [%]" : exposure,
         "Trades" : trades,
         "Overtrading" : overtrading,
-        "Win rate" : winrate
+        #"Win rate" : winrate
     })
     
     return tab
@@ -221,23 +236,62 @@ def create_trade_log(name, df, cost):
     
     tab_df = pd.DataFrame(tab)
     
-    summary = {
-        "Entry Date": "-",
-        "Exit Date": "-",
-        "Entry Price": "-",
-        "Exit Price": "-",
-        "PnL [%]": tab_df["PnL [%]"].mean(),
-        "Duration": tab_df["Duration"].sum(),
-        "Win/Loss" : int(tab_df["PnL [%]"].mean() > 0),
-        "Costs [%]" : tab_df["Costs [%]"].sum()
-    }
+    # summary = {
+    #     "Entry Date": "-",
+    #     "Exit Date": "-",
+    #     "Entry Price": "-",
+    #     "Exit Price": "-",
+    #     "PnL [%]": tab_df["PnL [%]"].mean(),
+    #     "Duration": tab_df["Duration"].sum(),
+    #     "Win/Loss" : int(tab_df["PnL [%]"].mean() > 0),
+    #     "Costs [%]" : tab_df["Costs [%]"].sum()
+    # }
     
-    tab_df = pd.concat([tab_df, pd.DataFrame([summary])], ignore_index=True)
+    # tab_df = pd.concat([tab_df, pd.DataFrame([summary])], ignore_index=True)
     
     tab_df.to_excel(fr"files\{name}.xlsx")
     
     return tab_df
 
+def sma_get_pos_df(df, SL):
+    
+    df.loc[df.index[0], "position"] = 0
+    
+    entry = -1
+    
+    for i in range(1, len(df)):
+        
+        prev_pos = df.loc[df.index[i-1], "position"]
+        
+        if prev_pos == 1:
+            # check SL/TP
+                      
+            if (df.loc[df.index[i-1], "Close"] < entry - entry * 0.01 * SL) or (df.loc[df.index[i-1], "signal"] == -1):
+                
+                df.loc[df.index[i], "position"] = 0
+                entry = -1
+            
+            else:
+                
+                df.loc[df.index[i], "position"] = 1
+                
+        else:
+            # check signal
+            
+            if df.loc[df.index[i-1], "signal"] == 1:
+                
+                df.loc[df.index[i], "position"] = 1
+                entry = df.loc[df.index[i], "Open"]
+                
+            else:
+                df.loc[df.index[i], "position"] = 0
+                
+    if os.path.exists("files\\test_data.xlsx"):
+        os.remove("files\\test_data.xlsx")
+         
+    df.to_excel(r"files\\test_data.xlsx")
+                
+                
 def get_pos_df(df):
     
     df["position"] = df["signal"].shift(1).replace({
