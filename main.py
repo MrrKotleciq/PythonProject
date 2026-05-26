@@ -50,11 +50,11 @@ def main(ticker):
     BH_df["Open"] = data["Open"]
     BH_df["Zwrot"] = data["Zwrot"]
     BH_df["signal"] = np.where(BH_df.index == BH_df.index[0], 1, 
-                                np.where(BH_df.index == BH_df.index[-1], -1, 0))
+                                np.where(BH_df.index == BH_df.index[-2], -1, 0))
     
     BH_df["position"] = get_pos_df(BH_df)
 
-    BH_changes = BH_df["position"] != BH_df["position"].shift(1)
+    BH_changes = BH_df["position"] != BH_df["position"].shift(1).fillna(0)
     BH_pos_df = BH_df[BH_changes]
 
     if os.path.exists("files\\BH_pos.xlsx"):
@@ -198,7 +198,7 @@ def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, strategy_c
     trades = (strategy_df["signal"] > 0).sum()
     overtrading = round(trades / len(strategy_df), 2)
     sharpe_ratio = round(strategy_df["Return"].mean()/strategy_df["Return"].std() * np.sqrt(252), 2)
-   # winrate = round(s_trade_log_df["Win/Loss"].sum() / len(s_trade_log_df), 2)
+    winrate = round(s_trade_log_df["Win/Loss"].sum() / len(s_trade_log_df), 2)
     
     tab.append({
         "Strategia" : strategia,
@@ -209,7 +209,7 @@ def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, strategy_c
         "Exposure [%]" : exposure,
         "Trades" : trades,
         "Overtrading" : overtrading,
-        #"Win rate" : winrate
+        "Win rate" : winrate
     })
     
     return tab
@@ -236,18 +236,18 @@ def create_trade_log(name, df, cost):
     
     tab_df = pd.DataFrame(tab)
     
-    # summary = {
-    #     "Entry Date": "-",
-    #     "Exit Date": "-",
-    #     "Entry Price": "-",
-    #     "Exit Price": "-",
-    #     "PnL [%]": tab_df["PnL [%]"].mean(),
-    #     "Duration": tab_df["Duration"].sum(),
-    #     "Win/Loss" : int(tab_df["PnL [%]"].mean() > 0),
-    #     "Costs [%]" : tab_df["Costs [%]"].sum()
-    # }
+    summary = {
+        "Entry Date": "-",
+        "Exit Date": "-",
+        "Entry Price": "-",
+        "Exit Price": "-",
+        "PnL [%]": tab_df["PnL [%]"].mean(),
+        "Duration": tab_df["Duration"].sum(),
+        "Win/Loss" : int(tab_df["PnL [%]"].mean() > 0),
+        "Costs [%]" : tab_df["Costs [%]"].sum()
+    }
     
-    # tab_df = pd.concat([tab_df, pd.DataFrame([summary])], ignore_index=True)
+    tab_df = pd.concat([tab_df, pd.DataFrame([summary])], ignore_index=True)
     
     tab_df.to_excel(fr"files\{name}.xlsx")
     
