@@ -1,6 +1,6 @@
 
 
-wartosc = 1.2
-wartosc = min(wartosc, 1)
+wartosc = -10000000
+wartosc = max(wartosc, 0)
 
 print(wartosc)

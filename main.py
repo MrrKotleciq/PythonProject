@@ -18,8 +18,9 @@ def main(ticker):
     slippage_cost = 0.0002      # simplified slippage cost
 
     ATR_span = 14
-    stop_loss_level = 5 # [%]
-    take_profit_level = 3 * stop_loss_level # [%]
+    stop_loss_level = 100 # [%]
+    take_profit_level = 300 * stop_loss_level # [%]
+    target_volality = 0.02
     
 ########
     
@@ -78,9 +79,11 @@ def main(ticker):
                                     np.where((sma_df["SMA1"].shift(1) >= sma_df["SMA2"].shift(1)) &
                                              (sma_df["SMA1"] < sma_df["SMA2"]), -1, 0))
     
+    sma_df["pos_size"] = get_pos_size(sma_df, target_volality)
     TP_SL_pos_df(sma_df, stop_loss_level, take_profit_level)
     sma_changes = sma_df["position"] != sma_df["position"].shift(1)    
     sma_pos_df = sma_df[sma_changes].iloc[1:]
+    
     
     if os.path.exists("files\\sma_pos.xlsx"):
         os.remove("files\\sma_pos.xlsx")
@@ -88,7 +91,7 @@ def main(ticker):
     sma_pos_df.to_excel(r"files\\sma_pos.xlsx")
     sma_trade_log_df = create_trade_log("SMA_trade_log", sma_pos_df, cost_per_trade)
 
-    sma_df["Return"] = sma_df["Zwrot"] * sma_df["position"] # * sma_df["pos_size"] !!!!!!!!!!!!!
+    sma_df["Return"] = sma_df["Zwrot"] * sma_df["position"] #* sma_df["pos_size"]
 
     wyniki = append_resaults(wyniki, sma_df, sma_trade_log_df, "SMA Strategy", sma_changes, cost_per_trade + slippage_cost)
     
@@ -191,7 +194,8 @@ def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, strategy_c
     
     
     s_return = round(strategy_df["cumulative"].iloc[-1], 2)
-    max_drawdown = round(strategy_df["cumulative"].min(), 2)
+    init_capital_drawdown = round(max(100 - strategy_df["cumulative"].min(), 0), 2)
+    
     peak = round(strategy_df["cumulative"].max(), 2)
     exposure = round(strategy_df["position"].mean()*100, 2)
     trades = (strategy_df["signal"] > 0).sum()
@@ -203,7 +207,7 @@ def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, strategy_c
         "Strategia" : strategia,
         "Final return [%]" : s_return,
         "Sharpe" : sharpe_ratio,
-        "Max Drawdown [%]" : max_drawdown,
+        "init_capital Drawdown [%]" : init_capital_drawdown,
         "Peak [%]" : peak,
         "Exposure [%]" : exposure,
         "Trades" : trades,
@@ -218,8 +222,8 @@ def create_trade_log(name, df, cost):
     tab = []
     
     for i in range(0, int(np.floor(len(df)-1)), 2):
-        entry_price = df["Close"].squeeze().iloc[i]
-        exit_price = df["Close"].squeeze().iloc[i+1]
+        entry_price = df.loc[df.index[i], "Close"]
+        exit_price = df.loc[df.index[i+1], "Close"]
         ret = round((exit_price - entry_price - (exit_price*cost + entry_price*cost)) / entry_price*100 , 2) # return with included trade cost
         
         tab.append({
@@ -305,6 +309,7 @@ def get_pos_size(df, target_volality):
         df.loc[df.index[i], "pos_size"] = target_volality / df.loc[df.index[i-1], "volality"]
         df.loc[df.index[i], "pos_size"] = min(df.loc[df.index[i], "pos_size"], 1)
 
+    return df["pos_size"]
                 
 def get_pos_df(df):
     
