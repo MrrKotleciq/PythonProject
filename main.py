@@ -5,14 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from enum import Enum
     
-signal = {
-    "SELL"  : -1,
-    "BUY"   : 1
-}  
-
-print(signal["SELL"])
-print(signal["BUY"])
-
 
 def main(ticker):      
 
@@ -27,6 +19,7 @@ def main(ticker):
 
     ATR_span = 14
     stop_loss_level = 5 # [%]
+    take_profit_level = 3 * stop_loss_level # [%]
     
 ########
     
@@ -34,12 +27,7 @@ def main(ticker):
 
     data = yf.download(ticker, start="2020-12-01", end="2026-01-01")
 
-    data["SMA5"] = data["Close"].rolling(12).mean()
-    data["SMA20"] = data["Close"].rolling(25).mean()
-    data["SMA100"] = data["Close"].rolling(100).mean()
     data["Zwrot"] = data["Close"].pct_change()
-    data["ATR"] = (data["Close"] - data["Close"].shift(1)).abs().rolling(ATR_span).mean()
-    data["volality"] = data["Close"].rolling(20).std()
 
 ########
 
@@ -77,13 +65,20 @@ def main(ticker):
     sma_df["Close"] = data["Close"]
     sma_df["Open"] = data["Open"]
     sma_df["Zwrot"] = data["Zwrot"]
-    sma_df["signal"] = np.where((data["SMA5"].shift(1) <= data["SMA20"].shift(1)) & 
-                                    (data["SMA5"] > data["SMA20"]) & 
-                                    (data["Close"].squeeze() > data["SMA100"]), 1, 
-                                    np.where((data["SMA5"].shift(1) >= data["SMA20"].shift(1)) &
-                                             (data["SMA5"] < data["SMA20"]), -1, 0))
     
-    sma_get_pos_df(sma_df, stop_loss_level)
+    sma_df["SMA1"] = sma_df["Close"].rolling(12).mean()
+    sma_df["SMA2"] = sma_df["Close"].rolling(25).mean()
+    sma_df["SMA3"] = sma_df["Close"].rolling(100).mean()
+    
+    sma_df["ATR"] = (sma_df["Close"] - sma_df["Close"].shift(1)).abs().rolling(ATR_span).mean()
+    sma_df["volality"] = sma_df["Zwrot"].rolling(20).std()
+    sma_df["signal"] = np.where((sma_df["SMA1"].shift(1) <= sma_df["SMA2"].shift(1)) & 
+                                    (sma_df["SMA1"] > sma_df["SMA2"]) & 
+                                    (sma_df["Close"].squeeze() > sma_df["SMA3"]), 1, 
+                                    np.where((sma_df["SMA1"].shift(1) >= sma_df["SMA2"].shift(1)) &
+                                             (sma_df["SMA1"] < sma_df["SMA2"]), -1, 0))
+    
+    TP_SL_pos_df(sma_df, stop_loss_level, take_profit_level)
     sma_changes = sma_df["position"] != sma_df["position"].shift(1)    
     sma_pos_df = sma_df[sma_changes].iloc[1:]
     
@@ -93,10 +88,14 @@ def main(ticker):
     sma_pos_df.to_excel(r"files\\sma_pos.xlsx")
     sma_trade_log_df = create_trade_log("SMA_trade_log", sma_pos_df, cost_per_trade)
 
-    sma_df["Return"] = sma_df["Zwrot"] * sma_df["position"]
+    sma_df["Return"] = sma_df["Zwrot"] * sma_df["position"] # * sma_df["pos_size"] !!!!!!!!!!!!!
 
     wyniki = append_resaults(wyniki, sma_df, sma_trade_log_df, "SMA Strategy", sma_changes, cost_per_trade + slippage_cost)
     
+    if os.path.exists("files\\sma_df.xlsx"):
+        os.remove("files\\sma_df.xlsx")
+         
+    sma_df.to_excel(r"files\\sma_df.xlsx")
 ########
 
 ######## random strategy data 
@@ -253,7 +252,13 @@ def create_trade_log(name, df, cost):
     
     return tab_df
 
-def sma_get_pos_df(df, SL):
+def TP_SL_pos_df(df, SL, TP):
+    
+    signal = {
+        "SELL"  : -1,
+        "BUY"   : 1,
+        "NO"    : 0
+    }  
     
     df.loc[df.index[0], "position"] = 0
     
@@ -265,8 +270,8 @@ def sma_get_pos_df(df, SL):
         
         if prev_pos == 1:
             # check SL/TP
-                      
-            if (df.loc[df.index[i-1], "Close"] < entry - entry * 0.01 * SL) or (df.loc[df.index[i-1], "signal"] == -1):
+            # take profit is shit rn
+            if (df.loc[df.index[i-1],"Close"] < entry*(100-SL)/100) or (df.loc[df.index[i-1],"Close"] > entry*(100+TP)/100) or (df.loc[df.index[i-1],"signal"] == signal["SELL"]):
                 
                 df.loc[df.index[i], "position"] = 0
                 entry = -1
@@ -278,7 +283,7 @@ def sma_get_pos_df(df, SL):
         else:
             # check signal
             
-            if df.loc[df.index[i-1], "signal"] == 1:
+            if df.loc[df.index[i-1], "signal"] == signal["BUY"]:
                 
                 df.loc[df.index[i], "position"] = 1
                 entry = df.loc[df.index[i], "Open"]
@@ -290,7 +295,16 @@ def sma_get_pos_df(df, SL):
         os.remove("files\\test_data.xlsx")
          
     df.to_excel(r"files\\test_data.xlsx")
-                
+
+
+def get_pos_size(df, target_volality):
+    
+    df["volality"].fillna(1)
+    
+    for i in range(1, len(df)):
+        df.loc[df.index[i], "pos_size"] = target_volality / df.loc[df.index[i-1], "volality"]
+        df.loc[df.index[i], "pos_size"] = min(df.loc[df.index[i], "pos_size"], 1)
+
                 
 def get_pos_df(df):
     
