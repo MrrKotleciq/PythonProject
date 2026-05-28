@@ -2,11 +2,9 @@ import os
 import yfinance as yf
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
-from enum import Enum
-    
+import numpy as np    
 
-def main(ticker):      
+def main():      
 
 ######## Constants    
 
@@ -18,7 +16,7 @@ def main(ticker):
     slippage_cost = 0.0002      # simplified slippage cost
 
     ATR_span = 14
-    stop_loss_level = 100 # [%]
+    stop_loss_level = 5 # [%]
     take_profit_level = 300 * stop_loss_level # [%]
     target_volality = 0.02
     
@@ -26,7 +24,7 @@ def main(ticker):
     
 ######## ticker data - main dataframe
 
-    data = yf.download(ticker, start="2020-12-01", end="2026-01-01")
+    data = load_data("TSLA", "2020-12-01", "2026-01-01")
 
     data["Zwrot"] = data["Close"].pct_change()
 
@@ -61,18 +59,9 @@ def main(ticker):
 ########
 
 ######## SMA position - data
-
-    sma_df = pd.DataFrame()
-    sma_df["Close"] = data["Close"]
-    sma_df["Open"] = data["Open"]
-    sma_df["Zwrot"] = data["Zwrot"]
+   
+    sma_df = get_indicators(data, ATR_span, 20, 12, 25, 100)
     
-    sma_df["SMA1"] = sma_df["Close"].rolling(12).mean()
-    sma_df["SMA2"] = sma_df["Close"].rolling(25).mean()
-    sma_df["SMA3"] = sma_df["Close"].rolling(100).mean()
-    
-    sma_df["ATR"] = (sma_df["Close"] - sma_df["Close"].shift(1)).abs().rolling(ATR_span).mean()
-    sma_df["volality"] = sma_df["Zwrot"].rolling(20).std()
     sma_df["signal"] = np.where((sma_df["SMA1"].shift(1) <= sma_df["SMA2"].shift(1)) & 
                                     (sma_df["SMA1"] > sma_df["SMA2"]) & 
                                     (sma_df["Close"].squeeze() > sma_df["SMA3"]), 1, 
@@ -324,7 +313,31 @@ def get_pos_df(df):
 
     return df["position"]
     
+def load_data(ticker:str, start, end):
+    
+    df = yf.download(ticker, start, end, multi_level_index=False)
+    
+    return df
+    
+def get_indicators(df, ATR_span:int, volality_span:int, S1:int, S2:int, S3:int):
+    
+    df["Zwrot"] = df["Close"].pct_change()
+    df["SMA1"] = df["Close"].rolling(S1).mean()
+    df["SMA2"] = df["Close"].rolling(S2).mean()
+    df["SMA3"] = df["Close"].rolling(S3).mean()
+    
+    df["ATR"] = (df["Close"] - df["Close"].shift(1)).abs().rolling(ATR_span).mean()
+    df["volality"] = df["Zwrot"].rolling(volality_span).std()
+    
+    df["Zwrot"] = df["Zwrot"].fillna(0)
+    df["ATR"] = df["ATR"].fillna(0)
+    df["volality"] = df["volality"].fillna(1)
+    
+    #print(df)
+    
+    return df
+
 ########
 
 os.makedirs(r"files", exist_ok=True)
-main("TSLA")
+main()
