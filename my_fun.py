@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import yfinance as yf
 
-def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, cost):
+def append_resaults(tab, strategy_df:pd.DataFrame, s_trade_log_df:pd.DataFrame, strategia: str, cost):
     
     strategy_df["Return"] = np.where(strategy_df["position"] != strategy_df["position"].shift(1).fillna(0), strategy_df["Return"] - cost, strategy_df["Return"])
     strategy_df["cumulative"] = (1 + strategy_df["Return"]).cumprod() * 100
@@ -34,7 +34,7 @@ def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, cost):
     
     return tab
 
-def create_trade_log(name, df, cost):
+def create_trade_log(name, df:pd.DataFrame, cost):
     
     tab = []
     
@@ -73,7 +73,7 @@ def create_trade_log(name, df, cost):
     
     return tab_df
 
-def TP_SL_pos_df(df, SL, TP):
+def TP_SL_pos_df(df:pd.DataFrame, SL, TP):
     
     signal = {
         "SELL"  : -1,
@@ -117,7 +117,7 @@ def TP_SL_pos_df(df, SL, TP):
          
     return df["position"]
 
-def get_pos_size(df, target_volality):
+def get_pos_size(df:pd.DataFrame, target_volality):
     
     df["volality"] = df["volality"].fillna(1)
     
@@ -127,7 +127,7 @@ def get_pos_size(df, target_volality):
 
     return df["pos_size"]
                 
-def get_pos_df(df):
+def get_pos_df(df:pd.DataFrame):
     
     df["position"] = df["signal"].shift(1).replace({
         1: 1,
@@ -146,7 +146,7 @@ def load_data(ticker:str, start, end):
     
     return df
     
-def get_indicators(base_df, ATR_span:int, volality_span:int, S1:int, S2:int, S3:int):
+def get_indicators(base_df:pd.DataFrame, ATR_span:int, volality_span:int, S1:int, S2:int, S3:int):
     
     df = pd.DataFrame(base_df)
     
@@ -166,7 +166,7 @@ def get_indicators(base_df, ATR_span:int, volality_span:int, S1:int, S2:int, S3:
     
     return df
 
-def get_sma_signal(df, SL, TP):
+def get_sma_signal(df:pd.DataFrame, SL, TP):
     
     signal = {
         "SELL"  : -1,
@@ -184,7 +184,7 @@ def get_sma_signal(df, SL, TP):
 
     return df
 
-def run_BH(data, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - cost per trade, SlC - slippage cost
+def run_BH(data:pd.DataFrame, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - cost per trade, SlC - slippage cost
     BH_df = get_indicators(data, ATR_span, 20, 12, 25, 100)
     BH_df["signal"] = np.where(BH_df.index == BH_df.index[0], 1, 
                                 np.where(BH_df.index == BH_df.index[-2], -1, 0))
@@ -212,7 +212,7 @@ def run_BH(data, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - cost per t
     
     return [BH_df, wyniki]
 
-def run_rnd(data, ATR_span:int, CpT:float, SlC:float, wyniki):
+def run_rnd(data:pd.DataFrame, ATR_span:int, CpT:float, SlC:float, wyniki):
     
     r_df = get_indicators(data, ATR_span, 20, 12, 25, 100)
     r_df["signal"] = np.random.randint(-1, 2, size=len(r_df))
