@@ -32,17 +32,13 @@ def main():
 
 ######## Buy and Hold - data
 
-    BH_df = pd.DataFrame()
-    BH_df["Close"] = data["Close"]
-    BH_df["Open"] = data["Open"]
-    BH_df["Zwrot"] = data["Zwrot"]
+    BH_df = get_indicators(data, ATR_span, 20, 12, 25, 100)
     BH_df["signal"] = np.where(BH_df.index == BH_df.index[0], 1, 
                                 np.where(BH_df.index == BH_df.index[-2], -1, 0))
     
     BH_df["position"] = get_pos_df(BH_df)
 
-    BH_changes = BH_df["position"] != BH_df["position"].shift(1).fillna(0)
-    BH_pos_df = BH_df[BH_changes]
+    BH_pos_df = get_position_df(BH_df)
 
     if os.path.exists("files\\BH_pos.xlsx"):
         os.remove("files\\BH_pos.xlsx")
@@ -52,9 +48,17 @@ def main():
     BH_trade_log_df = create_trade_log("BH_trade_log", BH_pos_df, cost_per_trade)
     
     BH_df["Return"] = BH_df["Zwrot"] * BH_df["position"].shift(1)
+    BH_df["Return"] = BH_df["Return"].fillna(0)
     
     wyniki = []
-    wyniki = append_resaults(wyniki, BH_df, BH_trade_log_df, "Buy & Hold Strategy", BH_changes, cost_per_trade + slippage_cost)
+    wyniki = append_resaults(wyniki, BH_df, BH_trade_log_df, "Buy & Hold Strategy", cost_per_trade + slippage_cost)
+    
+    if os.path.exists("files\\BH_df.xlsx"):
+        os.remove("files\\BH_df.xlsx")
+         
+    BH_df.to_excel(r"files\\BH_df.xlsx")
+    
+    print(BH_df["cumulative"])
     
 ########
 
@@ -62,16 +66,10 @@ def main():
    
     sma_df = get_indicators(data, ATR_span, 20, 12, 25, 100)
     
-    sma_df["signal"] = np.where((sma_df["SMA1"].shift(1) <= sma_df["SMA2"].shift(1)) & 
-                                    (sma_df["SMA1"] > sma_df["SMA2"]) & 
-                                    (sma_df["Close"].squeeze() > sma_df["SMA3"]), 1, 
-                                    np.where((sma_df["SMA1"].shift(1) >= sma_df["SMA2"].shift(1)) &
-                                             (sma_df["SMA1"] < sma_df["SMA2"]), -1, 0))
+    sma_df = get_sma_signal(sma_df, stop_loss_level, take_profit_level)
     
     sma_df["pos_size"] = get_pos_size(sma_df, target_volality)
-    TP_SL_pos_df(sma_df, stop_loss_level, take_profit_level)
-    sma_changes = sma_df["position"] != sma_df["position"].shift(1)    
-    sma_pos_df = sma_df[sma_changes].iloc[1:]
+    sma_pos_df = get_position_df(sma_df)
     
     
     if os.path.exists("files\\sma_pos.xlsx"):
@@ -82,7 +80,7 @@ def main():
 
     sma_df["Return"] = sma_df["Zwrot"] * sma_df["position"] #* sma_df["pos_size"]
 
-    wyniki = append_resaults(wyniki, sma_df, sma_trade_log_df, "SMA Strategy", sma_changes, cost_per_trade + slippage_cost)
+    wyniki = append_resaults(wyniki, sma_df, sma_trade_log_df, "SMA Strategy", cost_per_trade + slippage_cost)
     
     if os.path.exists("files\\sma_df.xlsx"):
         os.remove("files\\sma_df.xlsx")
@@ -110,7 +108,7 @@ def main():
 
 ######## Random Strategy - data
 
-    wyniki = append_resaults(wyniki, r_df, r_trade_log_df, "Random Strategy", r_changes, cost_per_trade + slippage_cost)
+    wyniki = append_resaults(wyniki, r_df, r_trade_log_df, "Random Strategy", cost_per_trade + slippage_cost)
 
 ########
 
@@ -160,7 +158,7 @@ def main():
     # plt.plot(sma_df["signal"], label="Signal")
     plt.plot(BH_df["cumulative"], label="Hold")
     plt.plot(sma_df["cumulative"], label="Strategy")
-    plt.plot(r_df["cumulative"], label="Random")
+    # plt.plot(r_df["cumulative"], label="Random")
     # plt.plot(data["ATR"], label="ATR")
 
     plt.ylabel("Wartość")
@@ -175,9 +173,9 @@ def main():
 
 ######## functions
 
-def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, strategy_changes, cost):
+def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, cost):
     
-    strategy_df["Return"] = np.where(strategy_changes, strategy_df["Return"] - cost, strategy_df["Return"])
+    strategy_df["Return"] = np.where(strategy_df["position"] != strategy_df["position"].shift(1).fillna(0), strategy_df["Return"] - cost, strategy_df["Return"])
     strategy_df["cumulative"] = (1 + strategy_df["Return"]).cumprod() * 100
     
     
@@ -287,12 +285,12 @@ def TP_SL_pos_df(df, SL, TP):
     if os.path.exists("files\\test_data.xlsx"):
         os.remove("files\\test_data.xlsx")
          
-    df.to_excel(r"files\\test_data.xlsx")
+    return df["position"]
 
 
 def get_pos_size(df, target_volality):
     
-    df["volality"].fillna(1)
+    df["volality"] = df["volality"].fillna(1)
     
     for i in range(1, len(df)):
         df.loc[df.index[i], "pos_size"] = target_volality / df.loc[df.index[i-1], "volality"]
@@ -321,6 +319,8 @@ def load_data(ticker:str, start, end):
     
 def get_indicators(df, ATR_span:int, volality_span:int, S1:int, S2:int, S3:int):
     
+    df = df.copy()
+    
     df["Zwrot"] = df["Close"].pct_change()
     df["SMA1"] = df["Close"].rolling(S1).mean()
     df["SMA2"] = df["Close"].rolling(S2).mean()
@@ -336,6 +336,33 @@ def get_indicators(df, ATR_span:int, volality_span:int, S1:int, S2:int, S3:int):
     #print(df)
     
     return df
+
+def get_sma_signal(df, SL, TP):
+    
+    signal = {
+        "SELL"  : -1,
+        "BUY"   : 1,
+        "NAN"    : 0
+    } 
+    
+    df["signal"] = np.where((df["SMA1"].shift(1) <= df["SMA2"].shift(1)) & 
+                                    (df["SMA1"] > df["SMA2"]) & 
+                                    (df["Close"].squeeze() > df["SMA3"]), signal["BUY"], 
+                                    np.where((df["SMA1"].shift(1) >= df["SMA2"].shift(1)) &
+                                             (df["SMA1"] < df["SMA2"]), signal["SELL"], signal["NAN"]))
+    
+    df["position"] = TP_SL_pos_df(df, SL, TP)
+
+    return df
+
+def get_BH_signal():
+    return
+
+def get_position_df(df):
+    changes = df["position"] != df["position"].shift(1).fillna(0)   
+    pos_df = df[changes]
+    
+    return pos_df
 
 ########
 
