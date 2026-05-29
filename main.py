@@ -1,8 +1,4 @@
-import os
-import yfinance as yf
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np    
+import os  
 
 from back_test import *
 
@@ -16,12 +12,27 @@ cost_per_trade = 0.002      # working cost - just for testing
 slippage_cost = 0.0002      # simplified slippage cost
 
 ATR_span = 14
+volality_span = 20
 stop_loss_level = 5 # [%]
 take_profit_level = 300 * stop_loss_level # [%]
 target_volality = 0.02
+S1 = 12
+S2 = 25
+S3 = 100
+
+
+BH = True
+R = False
+
 
 os.makedirs(r"files", exist_ok=True)
 
 data = load_data("TSLA", "2020-12-01", "2026-01-01")
 wyniki = []
-run_backtest(data, wyniki, cost_per_trade, slippage_cost, ATR_span, stop_loss_level, take_profit_level, target_volality, BH=True, R=False)
+
+sma_df = get_indicators(data, ATR_span, volality_span, S1, S2, S3)
+sma_df = get_sma_signal(sma_df, stop_loss_level, take_profit_level)
+BH_df, r_df, wyniki = run_backtest(data, sma_df, wyniki, cost_per_trade, slippage_cost, ATR_span, stop_loss_level, take_profit_level, target_volality, BH, R)
+wyniki_df = get_resaults_df(wyniki)
+
+plt_draw(BH_df, r_df, sma_df, BH, R)

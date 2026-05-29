@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 import os
 import yfinance as yf
+import matplotlib.pyplot as plt
+from pathlib import Path
 
-def append_resaults(tab, strategy_df:pd.DataFrame, s_trade_log_df:pd.DataFrame, strategia: str, cost):
+def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, cost):
     
     strategy_df["Return"] = np.where(strategy_df["position"] != strategy_df["position"].shift(1).fillna(0), strategy_df["Return"] - cost, strategy_df["Return"])
     strategy_df["cumulative"] = (1 + strategy_df["Return"]).cumprod() * 100
@@ -34,7 +36,20 @@ def append_resaults(tab, strategy_df:pd.DataFrame, s_trade_log_df:pd.DataFrame, 
     
     return tab
 
-def create_trade_log(name, df:pd.DataFrame, cost):
+def get_resaults_df(wyniki):
+
+    wyniki_df = pd.DataFrame(wyniki)
+    print(wyniki_df)
+    
+    file_path = Path("files") / "wyniki.xlsx"
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        
+    wyniki_df.to_excel(file_path)
+
+    return(wyniki_df)
+
+def create_trade_log(name, df, cost):
     
     tab = []
     
@@ -69,11 +84,12 @@ def create_trade_log(name, df:pd.DataFrame, cost):
     
     tab_df = pd.concat([tab_df, pd.DataFrame([summary])], ignore_index=True)
     
-    tab_df.to_excel(fr"files\{name}.xlsx")
+    file_path = Path("files") / f"{name}.xlsx"
+    tab_df.to_excel(file_path)
     
     return tab_df
 
-def TP_SL_pos_df(df:pd.DataFrame, SL, TP):
+def TP_SL_pos_df(df, SL:int, TP:int):
     
     signal = {
         "SELL"  : -1,
@@ -117,7 +133,7 @@ def TP_SL_pos_df(df:pd.DataFrame, SL, TP):
          
     return df["position"]
 
-def get_pos_size(df:pd.DataFrame, target_volality):
+def get_pos_size(df, target_volality:float):
     
     df["volality"] = df["volality"].fillna(1)
     
@@ -127,7 +143,7 @@ def get_pos_size(df:pd.DataFrame, target_volality):
 
     return df["pos_size"]
                 
-def get_pos_df(df:pd.DataFrame):
+def get_pos_df(df):
     
     df["position"] = df["signal"].shift(1).replace({
         1: 1,
@@ -140,13 +156,13 @@ def get_pos_df(df:pd.DataFrame):
 
     return df["position"]
     
-def load_data(ticker:str, start, end):
+def load_data(ticker:str, start:str, end:str):
     
     df = yf.download(ticker, start, end, multi_level_index=False)
     
     return df
     
-def get_indicators(base_df:pd.DataFrame, ATR_span:int, volality_span:int, S1:int, S2:int, S3:int):
+def get_indicators(base_df, ATR_span:int, volality_span:int, S1:int, S2:int, S3:int):
     
     df = pd.DataFrame(base_df)
     
@@ -166,7 +182,7 @@ def get_indicators(base_df:pd.DataFrame, ATR_span:int, volality_span:int, S1:int
     
     return df
 
-def get_sma_signal(df:pd.DataFrame, SL, TP):
+def get_sma_signal(df, SL:int, TP:int):
     
     signal = {
         "SELL"  : -1,
@@ -184,7 +200,7 @@ def get_sma_signal(df:pd.DataFrame, SL, TP):
 
     return df
 
-def run_BH(data:pd.DataFrame, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - cost per trade, SlC - slippage cost
+def run_BH(data, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - cost per trade, SlC - slippage cost
     BH_df = get_indicators(data, ATR_span, 20, 12, 25, 100)
     BH_df["signal"] = np.where(BH_df.index == BH_df.index[0], 1, 
                                 np.where(BH_df.index == BH_df.index[-2], -1, 0))
@@ -193,10 +209,11 @@ def run_BH(data:pd.DataFrame, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT
 
     BH_pos_df = get_position_df(BH_df)
 
-    if os.path.exists("files\\BH_pos.xlsx"):
-        os.remove("files\\BH_pos.xlsx")
+    file_path = Path("files") / "BH_pos.xlsx"
+    if os.path.exists(file_path):
+        os.remove(file_path)
          
-    BH_pos_df.to_excel(r"files\\BH_pos.xlsx")
+    BH_pos_df.to_excel(file_path)
     
     BH_trade_log_df = create_trade_log("BH_trade_log", BH_pos_df, CpT)
     
@@ -205,14 +222,15 @@ def run_BH(data:pd.DataFrame, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT
     
     wyniki = append_resaults(wyniki, BH_df, BH_trade_log_df, "Buy & Hold Strategy", CpT + SlC)
     
-    if os.path.exists("files\\BH_df.xlsx"):
-        os.remove("files\\BH_df.xlsx")
+    file_path = Path("files") / "BH_df.xlsx"
+    if os.path.exists(file_path):
+        os.remove(file_path)
          
-    BH_df.to_excel(r"files\\BH_df.xlsx")
+    BH_df.to_excel(file_path)
     
     return [BH_df, wyniki]
 
-def run_rnd(data:pd.DataFrame, ATR_span:int, CpT:float, SlC:float, wyniki):
+def run_rnd(data, ATR_span:int, CpT:float, SlC:float, wyniki):
     
     r_df = get_indicators(data, ATR_span, 20, 12, 25, 100)
     r_df["signal"] = np.random.randint(-1, 2, size=len(r_df))
@@ -234,3 +252,19 @@ def get_position_df(df):
     pos_df = df[changes]
     
     return pos_df
+
+def plt_draw(BH_df, r_df, s_df, BH:bool, R:bool):
+
+    if BH:
+        plt.plot(BH_df["cumulative"], label="Hold")
+    if R:
+        plt.plot(r_df["cumulative"], label="Random")
+        
+    plt.plot(s_df["cumulative"], label="Strategy")
+
+    plt.ylabel("Wartość")
+    plt.xlabel("Dzień")
+    plt.legend()
+    plt.show()
+
+
