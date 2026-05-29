@@ -4,13 +4,13 @@ from pathlib import Path
 
 from my_fun import *
 
-def run_backtest(data, df, wyniki, CpT, SlP, ATR_sp, SL, TP, target_volality, BH:bool, R:bool):      
+def run_backtest(ticker, data, df, wyniki, CpT, SlP, ATR_sp, SL, TP, target_volality, BH:bool, R:bool):      
 
 ######## Buy and Hold - data
 
     BH_df = pd.DataFrame()
     if BH:
-        BH_df, wyniki = run_BH(data, ATR_sp, CpT, SlP, wyniki)
+        BH_df, wyniki = run_BH(ticker, data, ATR_sp, CpT, SlP, wyniki)
     
 ########
 
@@ -18,7 +18,7 @@ def run_backtest(data, df, wyniki, CpT, SlP, ATR_sp, SL, TP, target_volality, BH
 
     r_df = pd.DataFrame()
     if R:
-        r_df, wyniki = run_rnd(data, ATR_sp, CpT, SlP, wyniki)
+        r_df, wyniki = run_rnd(ticker, data, ATR_sp, CpT, SlP, wyniki)
 
 ########
 
@@ -27,7 +27,7 @@ def run_backtest(data, df, wyniki, CpT, SlP, ATR_sp, SL, TP, target_volality, BH
     df["pos_size"] = get_pos_size(df, target_volality)
     sma_pos_df = get_position_df(df)
 
-    file_path = Path("files") / "sma_pos.xlsx"
+    file_path = Path(f"files/{ticker}") / "sma_pos.xlsx"
     if os.path.exists(file_path):
         os.remove(file_path)
          
@@ -37,9 +37,9 @@ def run_backtest(data, df, wyniki, CpT, SlP, ATR_sp, SL, TP, target_volality, BH
 
     df["Return"] = df["Zwrot"] * df["position"] * df["pos_size"]
 
-    wyniki = append_resaults(wyniki, df, sma_trade_log_df, "SMA Strategy", CpT + SlP)
+    wyniki = append_resaults(ticker, wyniki, df, sma_trade_log_df, "SMA Strategy", CpT + SlP)
     
-    file_path = Path("files") / "df.xlsx"
+    file_path = Path(f"files/{ticker}") / "df.xlsx"
     if os.path.exists(file_path):
         os.remove(file_path)
          

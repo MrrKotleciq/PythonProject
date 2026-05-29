@@ -3,9 +3,10 @@ import pandas as pd
 import os
 import yfinance as yf
 import matplotlib.pyplot as plt
+import asyncio 
 from pathlib import Path
 
-def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, cost):
+def append_resaults(ticker, tab, strategy_df, s_trade_log_df, strategia: str, cost):
     
     strategy_df["Return"] = np.where(strategy_df["position"] != strategy_df["position"].shift(1).fillna(0), strategy_df["Return"] - cost, strategy_df["Return"])
     strategy_df["cumulative"] = (1 + strategy_df["Return"]).cumprod() * 100
@@ -23,6 +24,7 @@ def append_resaults(tab, strategy_df, s_trade_log_df, strategia: str, cost):
     winrate = round(s_trade_log_df["Win/Loss"].sum() / len(s_trade_log_df), 2)
     
     tab.append({
+        "Ticker" : ticker,
         "Strategia" : strategia,
         "Final return [%]" : s_return,
         "Sharpe" : sharpe_ratio,
@@ -200,7 +202,7 @@ def get_sma_signal(df, SL:int, TP:int):
 
     return df
 
-def run_BH(data, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - cost per trade, SlC - slippage cost
+def run_BH(ticker, data, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - cost per trade, SlC - slippage cost
     BH_df = get_indicators(data, ATR_span, 20, 12, 25, 100)
     BH_df["signal"] = np.where(BH_df.index == BH_df.index[0], 1, 
                                 np.where(BH_df.index == BH_df.index[-2], -1, 0))
@@ -209,7 +211,7 @@ def run_BH(data, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - cost per t
 
     BH_pos_df = get_position_df(BH_df)
 
-    file_path = Path("files") / "BH_pos.xlsx"
+    file_path = Path(f"files/{ticker}") / "BH_pos.xlsx"
     if os.path.exists(file_path):
         os.remove(file_path)
          
@@ -220,9 +222,9 @@ def run_BH(data, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - cost per t
     BH_df["Return"] = BH_df["Zwrot"] * BH_df["position"].shift(1)
     BH_df["Return"] = BH_df["Return"].fillna(0)
     
-    wyniki = append_resaults(wyniki, BH_df, BH_trade_log_df, "Buy & Hold Strategy", CpT + SlC)
+    wyniki = append_resaults(ticker, wyniki, BH_df, BH_trade_log_df, "Buy & Hold Strategy", CpT + SlC)
     
-    file_path = Path("files") / "BH_df.xlsx"
+    file_path = Path(f"files/{ticker}") / "BH_df.xlsx"
     if os.path.exists(file_path):
         os.remove(file_path)
          
@@ -230,7 +232,7 @@ def run_BH(data, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - cost per t
     
     return [BH_df, wyniki]
 
-def run_rnd(data, ATR_span:int, CpT:float, SlC:float, wyniki):
+def run_rnd(ticker, data, ATR_span:int, CpT:float, SlC:float, wyniki):
     
     r_df = get_indicators(data, ATR_span, 20, 12, 25, 100)
     r_df["signal"] = np.random.randint(-1, 2, size=len(r_df))
@@ -243,7 +245,7 @@ def run_rnd(data, ATR_span:int, CpT:float, SlC:float, wyniki):
 
     r_trade_log_df = create_trade_log("r_s_trade_log", r_position_df, CpT)
 
-    wyniki = append_resaults(wyniki, r_df, r_trade_log_df, "Random Strategy", CpT + SlC)
+    wyniki = append_resaults(ticker, wyniki, r_df, r_trade_log_df, "Random Strategy", CpT + SlC)
     
     return [r_df, wyniki]
 
@@ -253,7 +255,7 @@ def get_position_df(df):
     
     return pos_df
 
-def plt_draw(BH_df, r_df, s_df, BH:bool, R:bool):
+def plt_draw(ticker, BH_df, r_df, s_df, BH:bool, R:bool):
 
     if BH:
         plt.plot(BH_df["cumulative"], label="Hold")
@@ -264,6 +266,7 @@ def plt_draw(BH_df, r_df, s_df, BH:bool, R:bool):
 
     plt.ylabel("Wartość")
     plt.xlabel("Dzień")
+    plt.title(f"{ticker}")
     plt.legend()
     plt.show()
 

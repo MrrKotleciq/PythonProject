@@ -24,15 +24,19 @@ S3 = 100
 BH = True
 R = False
 
-
-os.makedirs(r"files", exist_ok=True)
-
-data = load_data("TSLA", "2020-12-01", "2026-01-01")
+tickers = ["TSLA", "AAPL", "BTC-USD"]
 wyniki = []
 
-sma_df = get_indicators(data, ATR_span, volality_span, S1, S2, S3)
-sma_df = get_sma_signal(sma_df, stop_loss_level, take_profit_level)
-BH_df, r_df, wyniki = run_backtest(data, sma_df, wyniki, cost_per_trade, slippage_cost, ATR_span, stop_loss_level, take_profit_level, target_volality, BH, R)
-wyniki_df = get_resaults_df(wyniki)
+for ticker in tickers:
 
-plt_draw(BH_df, r_df, sma_df, BH, R)
+    os.makedirs(f"files/{ticker}", exist_ok=True)
+
+    data = load_data(f"{ticker}", "2020-12-01", "2026-01-01")
+
+    sma_df = get_indicators(data, ATR_span, volality_span, S1, S2, S3)
+    sma_df = get_sma_signal(sma_df, stop_loss_level, take_profit_level)
+    BH_df, r_df, wyniki = run_backtest(ticker, data, sma_df, wyniki, cost_per_trade, slippage_cost, ATR_span, stop_loss_level, take_profit_level, target_volality, BH, R)
+
+    plt_draw(ticker, BH_df, r_df, sma_df, BH, R)
+
+wyniki_df = get_resaults_df(wyniki)
