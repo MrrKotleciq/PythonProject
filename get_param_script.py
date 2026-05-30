@@ -21,10 +21,10 @@ BH = True
 R = False
 
 param_gtid = {
-    "sma_fast" : [12],
-    "sma_slow" : [50],
-    "sma_trend" : [150],
-    "target_vol" : [0.02]
+    "sma_fast" : [5, 12, 20, 50],
+    "sma_slow" : [25, 50, 100, 150],
+    "sma_trend" : [100, 150, 250, 300],
+    "target_vol" : [0.01, 0.02, 0.03, 0.04]
 }
 
 combinations = list(itertools.product(
@@ -36,7 +36,6 @@ combinations = list(itertools.product(
 
 tickers = ["TSLA", "AAPL", "BTC-USD", "MSFT"]
 wyniki = []
-corr = []
 
 i = 1
 
@@ -63,10 +62,13 @@ for ticker in tickers:
         sma_df = get_sma_signal(sma_df, stop_loss_level, take_profit_level)
         BH_df, r_df, wyniki = run_backtest(ticker, data, sma_df, wyniki, cost_per_trade, slippage_cost, ATR_span, stop_loss_level, take_profit_level, target_vol, BH, R)
 
-        plt_draw(ticker, BH_df, r_df, sma_df, BH, R)
+        # plt_draw(ticker, BH_df, r_df, sma_df, BH, R)
 
-        corr.append({
-            f"{ticker}" : sma_df["Zwrot"]
+        wyniki.append({
+            "fast" : sma_fast,
+            "slow" : sma_slow,
+            "trend": sma_trend,
+            "target_vol" : target_vol
         })
 
 wyniki_df = get_resaults_df(wyniki)
