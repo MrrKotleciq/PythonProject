@@ -3,10 +3,13 @@ import pandas as pd
 import os
 import yfinance as yf
 import matplotlib.pyplot as plt
-import asyncio 
 from pathlib import Path
 
 def append_resaults(ticker, tab, strategy_df, s_trade_log_df, strategia: str, cost):
+    
+    """
+    Takes input data in, calculates Return and cumulative Return. Calculates basic metrics and appends them to a given table 
+    """
     
     strategy_df["Return"] = np.where(strategy_df["position"] != strategy_df["position"].shift(1).fillna(0), strategy_df["Return"] - cost, strategy_df["Return"])
     strategy_df["cumulative"] = (1 + strategy_df["Return"]).cumprod() * 100
@@ -40,6 +43,9 @@ def append_resaults(ticker, tab, strategy_df, s_trade_log_df, strategia: str, co
 
 def get_resaults_df(wyniki):
 
+    """
+    Takes given resault table (can be made with append_resaults()) and creates a dataFrame with it which is saved to a file.
+    """
     wyniki_df = pd.DataFrame(wyniki)
     print(wyniki_df)
     
@@ -53,6 +59,10 @@ def get_resaults_df(wyniki):
 
 def create_trade_log(name, df, cost):
     
+    """
+    Creates trade log file for given dataframe returns it and saves it to a file
+    """
+
     tab = []
     
     for i in range(0, int(np.floor(len(df)-1)), 2):
@@ -93,6 +103,10 @@ def create_trade_log(name, df, cost):
 
 def TP_SL_pos_df(df, SL:int, TP:int):
     
+    """
+    Creates "position" column in input dataFrame base on signal column. Includes TP and SL in the proces.
+    """
+
     signal = {
         "SELL"  : -1,
         "BUY"   : 1,
@@ -137,6 +151,10 @@ def TP_SL_pos_df(df, SL:int, TP:int):
 
 def get_pos_size(df, target_volality:float):
     
+    """
+    Calculates position size based on volality and returns it as df["pos_size"] column
+    """
+
     df["volality"] = df["volality"].fillna(1)
     
     for i in range(1, len(df)):
@@ -147,6 +165,9 @@ def get_pos_size(df, target_volality:float):
                 
 def get_pos_df(df):
     
+    """
+    Creates df["position"] column based on signals index before (df["signal"].shift(1))
+    """
     df["position"] = df["signal"].shift(1).replace({
         1: 1,
         -1: 0,
@@ -160,12 +181,20 @@ def get_pos_df(df):
     
 def load_data(ticker:str, start:str, end:str):
     
+    """
+    Download ticker data and returns it's dataFrame with multi_level_index=False
+    """
+
     df = yf.download(ticker, start, end, multi_level_index=False)
     
     return df
     
 def get_indicators(base_df, ATR_span:int, volality_span:int, S1:int, S2:int, S3:int):
     
+    """
+    Creates basic indicators as SMA, ATR, volality base on data from load_data() function and creates new dataFrame.
+    """
+
     df = pd.DataFrame(base_df)
     
     df["Zwrot"] = df["Close"].pct_change()
@@ -186,6 +215,10 @@ def get_indicators(base_df, ATR_span:int, volality_span:int, S1:int, S2:int, S3:
 
 def get_sma_signal(df, SL:int, TP:int):
     
+    """
+    Creates signal column and position column with TP_SL_pos_df() function in advance. Returns whole dataFrame with ready fully position column
+    """
+
     signal = {
         "SELL"  : -1,
         "BUY"   : 1,
@@ -203,6 +236,11 @@ def get_sma_signal(df, SL:int, TP:int):
     return df
 
 def run_BH(ticker, data, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - cost per trade, SlC - slippage cost
+    
+    """
+    Creates all data for Buy and Hold strategy with given ticker and returns it's dataFrame and resaults appended to given table
+    """
+    
     BH_df = get_indicators(data, ATR_span, 20, 12, 25, 100)
     BH_df["signal"] = np.where(BH_df.index == BH_df.index[0], 1, 
                                 np.where(BH_df.index == BH_df.index[-2], -1, 0))
@@ -234,6 +272,10 @@ def run_BH(ticker, data, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - co
 
 def run_rnd(ticker, data, ATR_span:int, CpT:float, SlC:float, wyniki):
     
+    """
+    Creates all data for Random strategy with given ticker and returns it's dataFrame and resaults appended to given table
+    """
+
     r_df = get_indicators(data, ATR_span, 20, 12, 25, 100)
     r_df["signal"] = np.random.randint(-1, 2, size=len(r_df))
 
@@ -250,12 +292,20 @@ def run_rnd(ticker, data, ATR_span:int, CpT:float, SlC:float, wyniki):
     return [r_df, wyniki]
 
 def get_position_df(df):
+    """
+    Takes dataFrame and returns seperated days when position changed
+    """
+
     changes = df["position"] != df["position"].shift(1).fillna(0)   
     pos_df = df[changes]
     
     return pos_df
 
 def plt_draw(ticker, BH_df, r_df, s_df, BH:bool, R:bool):
+
+    """
+    Draw plots of strategies cumulative return
+    """
 
     if BH:
         plt.plot(BH_df["cumulative"], label="Hold")
@@ -269,5 +319,6 @@ def plt_draw(ticker, BH_df, r_df, s_df, BH:bool, R:bool):
     plt.title(f"{ticker}")
     plt.legend()
     plt.show()
+
 
 
