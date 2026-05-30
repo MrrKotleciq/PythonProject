@@ -57,7 +57,7 @@ def get_resaults_df(wyniki):
 
     return(wyniki_df)
 
-def create_trade_log(name, df, cost):
+def create_trade_log(name, ticker, df, cost):
     
     """
     Creates trade log file for given dataframe returns it and saves it to a file
@@ -96,7 +96,7 @@ def create_trade_log(name, df, cost):
     
     tab_df = pd.concat([tab_df, pd.DataFrame([summary])], ignore_index=True)
     
-    file_path = Path("files") / f"{name}.xlsx"
+    file_path = Path(f"files/{ticker}") / f"{name}.xlsx"
     tab_df.to_excel(file_path)
     
     return tab_df
@@ -255,7 +255,7 @@ def run_BH(ticker, data, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - co
          
     BH_pos_df.to_excel(file_path)
     
-    BH_trade_log_df = create_trade_log("BH_trade_log", BH_pos_df, CpT)
+    BH_trade_log_df = create_trade_log("BH_trade_log", ticker, BH_pos_df, CpT)
     
     BH_df["Return"] = BH_df["Zwrot"] * BH_df["position"].shift(1)
     BH_df["Return"] = BH_df["Return"].fillna(0)
@@ -285,7 +285,7 @@ def run_rnd(ticker, data, ATR_span:int, CpT:float, SlC:float, wyniki):
     
     r_df["Return"] = r_df["Zwrot"] * r_df["position"]
 
-    r_trade_log_df = create_trade_log("r_s_trade_log", r_position_df, CpT)
+    r_trade_log_df = create_trade_log("r_s_trade_log", ticker, r_position_df, CpT)
 
     wyniki = append_resaults(ticker, wyniki, r_df, r_trade_log_df, "Random Strategy", CpT + SlC)
     

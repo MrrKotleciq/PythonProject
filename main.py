@@ -13,7 +13,7 @@ slippage_cost = 0.0002      # simplified slippage cost
 
 ATR_span = 14
 volality_span = 20
-stop_loss_level = 5 # [%]
+stop_loss_level = 10 # [%]
 take_profit_level = 300 * stop_loss_level # [%]
 target_volality = 0.02
 S1 = 12
@@ -24,14 +24,14 @@ S3 = 100
 BH = True
 R = False
 
-tickers = ["TSLA", "AAPL", "BTC-USD"]
+tickers = ["TSLA", "AAPL", "BTC-USD", "MSFT"]
 wyniki = []
 
 for ticker in tickers:
 
     os.makedirs(f"files/{ticker}", exist_ok=True)
 
-    data = load_data(f"{ticker}", "2020-12-01", "2026-01-01")
+    data = load_data(f"{ticker}", "2020-01-01", "2026-01-01")
 
     sma_df = get_indicators(data, ATR_span, volality_span, S1, S2, S3)
     sma_df = get_sma_signal(sma_df, stop_loss_level, take_profit_level)

@@ -33,7 +33,7 @@ def run_backtest(ticker, data, df, wyniki, CpT, SlP, ATR_sp, SL, TP, target_vola
          
     sma_pos_df.to_excel(file_path)
 
-    sma_trade_log_df = create_trade_log("SMA_trade_log", sma_pos_df, CpT)
+    sma_trade_log_df = create_trade_log("SMA_trade_log",ticker , sma_pos_df, CpT)
 
     df["Return"] = df["Zwrot"] * df["position"] * df["pos_size"]
 
