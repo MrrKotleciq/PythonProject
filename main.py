@@ -17,14 +17,13 @@ volality_span = 20
 stop_loss_level = 5 # [%]
 take_profit_level = 30000 * stop_loss_level # [%]
 
-BH = True
-R = False
+BH = True; R = False
 
 param_gtid = {
     "sma_fast" : [12],
-    "sma_slow" : [50],
-    "sma_trend" : [150],
-    "target_vol" : [0.02]
+    "sma_slow" : [25],
+    "sma_trend" : [100],
+    "target_vol" : [0.03]
 }
 
 combinations = list(itertools.product(
@@ -35,38 +34,57 @@ combinations = list(itertools.product(
 ))
 
 tickers = ["TSLA", "AAPL", "BTC-USD", "MSFT"]
+dates = [["2019-01-01", "2021-06-01"],["2021-07-01", "2023-03-01"],["2015-01-01", "2017-01-01"]]
 wyniki = []
-corr = []
+corr = pd.DataFrame()
 
 i = 1
 
 for ticker in tickers:
 
-    j = 1
-    print(f"{i}/{len(tickers)}")
+    k = 1
+
+    for data in dates:
+
+        j = 1
+        
+        data = load_data(f"{ticker}", data[0], data[1])
+
+        for sma_fast, sma_slow, sma_trend, target_vol in combinations:
+        
+            print(f"Ticker: {i}/{len(tickers)}, date_span: {k}/{len(dates)} combinaiton: {j}/{len(combinations)}")
+            j += 1
+
+            if sma_fast >= sma_slow or sma_slow >= sma_trend:
+                continue
+
+            os.makedirs(f"files/{ticker}", exist_ok=True)
+
+
+            sma_df = get_indicators(data, ATR_span, volality_span, sma_fast, sma_slow, sma_trend)
+            sma_df = get_sma_signal(sma_df, stop_loss_level, take_profit_level)
+            BH_df, r_df, wyniki = run_backtest(ticker, data, sma_df, wyniki, cost_per_trade, slippage_cost, ATR_span, stop_loss_level, take_profit_level, target_vol, BH, R)
+
+            # plt_draw(ticker, BH_df, r_df, sma_df, BH, R)
+
+            corr[f"{ticker}"] = sma_df["Zwrot"]
+
+        k += 1
     i += 1
-    
-    data = load_data(f"{ticker}", "2015-01-01", "2026-01-01")
 
-    for sma_fast, sma_slow, sma_trend, target_vol in combinations:
-    
-        print(f"{j}/{len(combinations)}")
-        j += 1
+corr_matrix = corr.corr()
 
-        if sma_fast >= sma_slow or sma_slow >= sma_trend:
-            continue
-
-        os.makedirs(f"files/{ticker}", exist_ok=True)
-
-
-        sma_df = get_indicators(data, ATR_span, volality_span, sma_fast, sma_slow, sma_trend)
-        sma_df = get_sma_signal(sma_df, stop_loss_level, take_profit_level)
-        BH_df, r_df, wyniki = run_backtest(ticker, data, sma_df, wyniki, cost_per_trade, slippage_cost, ATR_span, stop_loss_level, take_profit_level, target_vol, BH, R)
-
-        plt_draw(ticker, BH_df, r_df, sma_df, BH, R)
-
-        corr.append({
-            f"{ticker}" : sma_df["Zwrot"]
-        })
+print(corr_matrix)
 
 wyniki_df = get_resaults_df(wyniki)
+
+trade_df = pd.DataFrame(columns=("Ticker", "Bullish", "Sideways", "Bearish"))
+
+for i in range(0, len(wyniki_df)-3, 3):
+
+    trade_df.loc[i, "Ticker"] = wyniki_df.loc[wyniki_df.index[i], "Ticker"]
+    trade_df.loc[i, "Bullish"] = wyniki_df.loc[wyniki_df.index[i], "Sharpe"]
+    trade_df.loc[i, "Sideways"] = wyniki_df.loc[wyniki_df.index[i+2], "Sharpe"]
+    trade_df.loc[i, "Bearish"] = wyniki_df.loc[wyniki_df.index[i+1], "Sharpe"]
+
+print(trade_df)

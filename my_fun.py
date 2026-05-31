@@ -23,7 +23,7 @@ def append_resaults(ticker, tab, strategy_df, s_trade_log_df, strategia: str, co
     exposure = round(strategy_df["position"].mean()*100, 2)
     trades = (strategy_df["signal"] > 0).sum()
     overtrading = round(trades / len(strategy_df), 2)
-    sharpe_ratio = round(strategy_df["Return"].mean()/strategy_df["Return"].std() * np.sqrt(252), 2)
+    sharpe_ratio = round(strategy_df["Return"].dropna().mean()/strategy_df["Return"].std() * np.sqrt(252), 2)
     winrate = round(s_trade_log_df["Win/Loss"].sum() / len(s_trade_log_df), 2)
     
     tab.append({
