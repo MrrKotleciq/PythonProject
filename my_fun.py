@@ -149,16 +149,16 @@ def TP_SL_pos_df(df, SL:int, TP:int):
          
     return df["position"]
 
-def get_pos_size(df, target_volality:float):
+def get_pos_size(df, target_volatility:float):
     
     """
-    Calculates position size based on volality and returns it as df["pos_size"] column
+    Calculates position size based on volatility and returns it as df["pos_size"] column
     """
 
-    df["volality"] = df["volality"].fillna(1)
+    df["volatility"] = df["volatility"].fillna(1)
     
     for i in range(1, len(df)):
-        df.loc[df.index[i], "pos_size"] = target_volality / df.loc[df.index[i-1], "volality"]
+        df.loc[df.index[i], "pos_size"] = target_volatility / df.loc[df.index[i-1], "volatility"]
         df.loc[df.index[i], "pos_size"] = min(df.loc[df.index[i], "pos_size"], 1)
 
     return df["pos_size"]
@@ -189,10 +189,10 @@ def load_data(ticker:str, start:str, end:str):
     
     return df
     
-def get_indicators(base_df, ATR_span:int, volality_span:int, S1:int, S2:int, S3:int):
+def get_indicators(base_df, ATR_span:int, volatility_span:int, S1:int, S2:int, S3:int):
     
     """
-    Creates basic indicators as SMA, ATR, volality base on data from load_data() function and creates new dataFrame.
+    Creates basic indicators as SMA, ATR, volatility base on data from load_data() function and creates new dataFrame.
     """
 
     df = pd.DataFrame(base_df)
@@ -201,13 +201,18 @@ def get_indicators(base_df, ATR_span:int, volality_span:int, S1:int, S2:int, S3:
     df["SMA1"] = df["Close"].rolling(S1).mean()
     df["SMA2"] = df["Close"].rolling(S2).mean()
     df["SMA3"] = df["Close"].rolling(S3).mean()
+    df["SMA100"] = df["Close"].rolling(100).mean()
+    df["slope"] = df["SMA100"].pct_change(20)
+    
+    df["trend"] = np.where((df["Close"] > df["SMA100"]) & (df["slope"] > 0), "bullish",
+                            np.where((df["Close"] < df["SMA100"]) & (df["slope"] < 0), "Bearish", "Sideways"))
     
     df["ATR"] = (df["Close"] - df["Close"].shift(1)).abs().rolling(ATR_span).mean()
-    df["volality"] = df["Zwrot"].rolling(volality_span).std()
+    df["volatility"] = df["Zwrot"].rolling(volatility_span).std()
     
     df["Zwrot"] = df["Zwrot"].fillna(0)
     df["ATR"] = df["ATR"].fillna(0)
-    df["volality"] = df["volality"].fillna(1)
+    df["volatility"] = df["volatility"].fillna(1)
     
     #print(df)
     

@@ -13,7 +13,7 @@ cost_per_trade = 0.002      # working cost - just for testing
 slippage_cost = 0.0002      # simplified slippage cost
 
 ATR_span = 14
-volality_span = 20
+volatility_span = 20
 stop_loss_level = 5 # [%]
 take_profit_level = 30000 * stop_loss_level # [%]
 
@@ -58,7 +58,7 @@ for ticker in tickers:
         os.makedirs(f"files/{ticker}", exist_ok=True)
 
 
-        sma_df = get_indicators(data, ATR_span, volality_span, sma_fast, sma_slow, sma_trend)
+        sma_df = get_indicators(data, ATR_span, volatility_span, sma_fast, sma_slow, sma_trend)
         sma_df = get_sma_signal(sma_df, stop_loss_level, take_profit_level)
         BH_df, r_df, wyniki = run_backtest(ticker, data, sma_df, wyniki, cost_per_trade, slippage_cost, ATR_span, stop_loss_level, take_profit_level, target_vol, BH, R)
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from my_fun import *
 
-def run_backtest(ticker, data, df, wyniki, CpT, SlP, ATR_sp, SL, TP, target_volality, BH:bool, R:bool):      
+def run_backtest(ticker, data, df, wyniki, CpT, SlP, ATR_sp, SL, TP, target_volatility, BH:bool, R:bool):      
 
 ######## Buy and Hold - data
 
@@ -24,7 +24,7 @@ def run_backtest(ticker, data, df, wyniki, CpT, SlP, ATR_sp, SL, TP, target_vola
 
 ######## SMA position - data
     
-    df["pos_size"] = get_pos_size(df, target_volality)
+    df["pos_size"] = get_pos_size(df, target_volatility)
     sma_pos_df = get_position_df(df)
 
     file_path = Path(f"files/{ticker}") / "sma_pos.xlsx"

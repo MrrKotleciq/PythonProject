@@ -13,7 +13,7 @@ cost_per_trade = 0.002      # working cost - just for testing
 slippage_cost = 0.0002      # simplified slippage cost
 
 ATR_span = 14
-volality_span = 20
+volatility_span = 20
 stop_loss_level = 5 # [%]
 take_profit_level = 30000 * stop_loss_level # [%]
 
@@ -33,8 +33,12 @@ combinations = list(itertools.product(
     param_gtid["target_vol"]
 ))
 
-tickers = ["TSLA", "AAPL", "BTC-USD", "MSFT"]
-dates = [["2019-01-01", "2021-06-01"],["2021-07-01", "2023-03-01"],["2015-01-01", "2017-01-01"]]
+# tickers = ["TSLA", "AAPL", "BTC-USD", "MSFT"]
+# dates = [["2019-01-01", "2021-06-01"],["2021-07-01", "2023-03-01"],["2015-01-01", "2017-01-01"]]
+
+tickers = ["AAPL"]
+dates = [["2019-01-01", "2025-01-01"]]
+
 wyniki = []
 corr = pd.DataFrame()
 
@@ -61,11 +65,15 @@ for ticker in tickers:
             os.makedirs(f"files/{ticker}", exist_ok=True)
 
 
-            sma_df = get_indicators(data, ATR_span, volality_span, sma_fast, sma_slow, sma_trend)
+            sma_df = get_indicators(data, ATR_span, volatility_span, sma_fast, sma_slow, sma_trend)
+            
+            print(sma_df["slope"].describe())
+            print(sma_df["volatility"].describe())
+            
             sma_df = get_sma_signal(sma_df, stop_loss_level, take_profit_level)
             BH_df, r_df, wyniki = run_backtest(ticker, data, sma_df, wyniki, cost_per_trade, slippage_cost, ATR_span, stop_loss_level, take_profit_level, target_vol, BH, R)
 
-            # plt_draw(ticker, BH_df, r_df, sma_df, BH, R)
+            plt_draw(ticker, BH_df, r_df, sma_df, BH, R)
 
             corr[f"{ticker}"] = sma_df["Zwrot"]
 
