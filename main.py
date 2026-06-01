@@ -67,12 +67,13 @@ for ticker in tickers:
 
             sma_df = get_indicators(data, ATR_span, volatility_span, sma_fast, sma_slow, sma_trend)
             
-            print(sma_df["slope"].describe())
-            print(sma_df["volatility"].describe())
+            # print(sma_df["slope"].describe())
+            # print(sma_df["volatility"].describe())
             
             sma_df = get_sma_signal(sma_df, stop_loss_level, take_profit_level)
             BH_df, r_df, wyniki = run_backtest(ticker, data, sma_df, wyniki, cost_per_trade, slippage_cost, ATR_span, stop_loss_level, take_profit_level, target_vol, BH, R)
 
+            get_regime_stats(sma_df)
             plt_draw(ticker, BH_df, r_df, sma_df, BH, R)
 
             corr[f"{ticker}"] = sma_df["Zwrot"]
@@ -82,7 +83,7 @@ for ticker in tickers:
 
 corr_matrix = corr.corr()
 
-print(corr_matrix)
+# print(corr_matrix)
 
 wyniki_df = get_resaults_df(wyniki)
 

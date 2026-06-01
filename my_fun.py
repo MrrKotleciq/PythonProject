@@ -204,8 +204,8 @@ def get_indicators(base_df, ATR_span:int, volatility_span:int, S1:int, S2:int, S
     df["SMA100"] = df["Close"].rolling(100).mean()
     df["slope"] = df["SMA100"].pct_change(20)
     
-    df["trend"] = np.where((df["Close"] > df["SMA100"]) & (df["slope"] > 0), "bullish",
-                            np.where((df["Close"] < df["SMA100"]) & (df["slope"] < 0), "Bearish", "Sideways"))
+    df["regime"] = np.where((df["Close"] > df["SMA100"]) & (df["slope"] > 0.01), "Bullish",
+                            np.where((df["Close"] < df["SMA100"]) & (df["slope"] < -0.01), "Bearish", "Sideways"))
     
     df["ATR"] = (df["Close"] - df["Close"].shift(1)).abs().rolling(ATR_span).mean()
     df["volatility"] = df["Zwrot"].rolling(volatility_span).std()
@@ -306,18 +306,80 @@ def get_position_df(df):
     
     return pos_df
 
+def get_regime_stats(df):
+    
+    to_check = ["Bullish", "Bearish", "Sideways"]
+    
+    regime_res = []
+    
+    for i in to_check:
+        
+        day_count = 0
+        return_sum = 0
+        
+        for j in range(len(df)):
+            
+            if df.loc[df.index[j], "regime"] != i:
+                continue
+            
+            day_count += 1
+            df.loc[df.index[j], f"{i}"] = df.loc[df.index[j], "Zwrot"]
+        
+        df[f"{i}"].fillna(0)
+        avg_return = df[f"{i}"].mean()
+        std = df[f"{i}"].std()
+        regime_exposure = day_count/len(df)*100
+        
+        regime_res.append({
+            "Regime" : i,
+            "Day count" : day_count,
+            "% Time" : regime_exposure,
+            "Avg return" : avg_return,
+            "Volatility" : std
+        })
+        
+    regime_df = pd.DataFrame(regime_res)
+    print(regime_df)
+
 def plt_draw(ticker, BH_df, r_df, s_df, BH:bool, R:bool):
 
     """
     Draw plots of strategies cumulative return
     """
 
-    if BH:
-        plt.plot(BH_df["cumulative"], label="Hold")
-    if R:
-        plt.plot(r_df["cumulative"], label="Random")
+    fig, ax = plt.subplots(figsize=(15,6))
+    ax.plot(s_df.index, s_df["Close"], color="black")
+    ax.plot(s_df.index, s_df["SMA100"], color="blue")
+    
+    colors = {
+        "Bullish" : "green",
+        "Bearish" : "red",
+        "Sideways": "gray"
+    }
+
+    start = s_df.index[0]
+    prev_regime = s_df["regime"].iloc[0]
+    
+    for i in range (1, len(s_df)):
+        curr_regime = s_df["regime"].iloc[i]
         
-    plt.plot(s_df["cumulative"], label="Strategy")
+        if curr_regime != prev_regime:
+            ax.axvspan(start, s_df.index[i],
+                       color = colors[prev_regime],
+                       alpha = 0.15)
+            start = s_df.index[i]
+            prev_regime = curr_regime
+            
+    ax.axvspan(start, s_df.index[-1],
+               color = colors[prev_regime],
+               alpha = 0.15)
+
+    # if BH:
+    #     plt.plot(BH_df["cumulative"], label="Hold")
+    # if R:
+    #     plt.plot(r_df["cumulative"], label="Random")
+        
+    # plt.plot(s_df["cumulative"], label="Strategy")
 
     plt.ylabel("Wartość")
     plt.xlabel("Dzień")
