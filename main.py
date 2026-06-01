@@ -74,6 +74,7 @@ for ticker in tickers:
             BH_df, r_df, wyniki = run_backtest(ticker, data, sma_df, wyniki, cost_per_trade, slippage_cost, ATR_span, stop_loss_level, take_profit_level, target_vol, BH, R)
 
             get_regime_stats(sma_df)
+            get_regime_changes(sma_df)
             plt_draw(ticker, BH_df, r_df, sma_df, BH, R)
 
             corr[f"{ticker}"] = sma_df["Zwrot"]
@@ -81,7 +82,7 @@ for ticker in tickers:
         k += 1
     i += 1
 
-corr_matrix = corr.corr()
+# corr_matrix = corr.corr()
 
 # print(corr_matrix)
 

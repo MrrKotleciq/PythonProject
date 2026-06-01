@@ -306,16 +306,58 @@ def get_position_df(df):
     
     return pos_df
 
+def get_regime_changes(df):
+    
+    prev_regime = df["regime"].iloc[0]
+    
+    bull_to_bear = 0
+    bull_to_side = 0
+    bear_to_bull = 0
+    bear_to_side = 0
+    side_to_bull = 0
+    side_to_bear = 0
+
+    for j in range(1, len(df)):
+        
+        curr_regime = df["regime"].iloc[j]
+        
+        match [prev_regime, curr_regime]:    
+            
+            case ["Bullish", "Bearish"]:
+                bull_to_bear += 1
+            case ["Bullish", "Sideways"]:
+                bull_to_side += 1
+            case ["Bearish", "Bullish"]:
+                bear_to_bull += 1
+            case ["Bearish", "Sideways"]:
+                bear_to_side += 1
+            case[ "Sideways", "Bullish"]:
+                side_to_bull += 1
+            case ["Sideways", "Bearish"]:
+                side_to_bear += 1
+                        
+        prev_regime = curr_regime
+        
+    regime_changes = {
+        "From" : ["Bull", "Bull", "Bear", "Bear", "Sideways", "Sideways"],
+        "To" : ["Bear", "Sideways", "Bull", "Sideways", "Bull", "Bear"],
+        "Count" : [bull_to_bear, bull_to_side, bear_to_bull, bear_to_side, side_to_bull, side_to_bear]
+    }
+    
+    regime_changes_df = pd.DataFrame(regime_changes)
+    
+    print(regime_changes_df)
+
 def get_regime_stats(df):
     
     to_check = ["Bullish", "Bearish", "Sideways"]
-    
     regime_res = []
+    first_pass = 1
+
     
     for i in to_check:
         
         day_count = 0
-        return_sum = 0
         
         for j in range(len(df)):
             
@@ -337,6 +379,7 @@ def get_regime_stats(df):
             "Avg return" : avg_return,
             "Volatility" : std
         })
+        first_pass = 0
         
     regime_df = pd.DataFrame(regime_res)
     print(regime_df)
