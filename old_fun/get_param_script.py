@@ -1,7 +1,7 @@
 import os  
 import itertools
 
-from back_test import *
+from old_fun.back_test import *
 
 ######## Constants    
 

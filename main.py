@@ -1,7 +1,7 @@
 import os  
 import itertools
 
-from back_test import *
+from old_fun.back_test import *
 
 ######## Constants    
 
@@ -19,24 +19,24 @@ take_profit_level = 30000 * stop_loss_level # [%]
 
 BH = True; R = False
 
-param_gtid = {
+param_grid = {
     "sma_fast" : [12],
-    "sma_slow" : [25],
-    "sma_trend" : [100],
+    "sma_mid" : [25],
+    "sma_slow" : [100],
     "target_vol" : [0.03]
 }
 
 combinations = list(itertools.product(
-    param_gtid["sma_fast"],
-    param_gtid["sma_slow"],
-    param_gtid["sma_trend"],
-    param_gtid["target_vol"]
+    param_grid["sma_fast"],
+    param_grid["sma_mid"],
+    param_grid["sma_slow"],
+    param_grid["target_vol"]
 ))
 
 # tickers = ["TSLA", "AAPL", "BTC-USD", "MSFT"]
 # dates = [["2019-01-01", "2021-06-01"],["2021-07-01", "2023-03-01"],["2015-01-01", "2017-01-01"]]
 
-tickers = ["AAPL"]
+tickers = ["TSLA"]
 dates = [["2019-01-01", "2025-01-01"]]
 
 wyniki = []
@@ -54,23 +54,33 @@ for ticker in tickers:
         
         data = load_data(f"{ticker}", data[0], data[1])
 
-        for sma_fast, sma_slow, sma_trend, target_vol in combinations:
+        for sma_fast, sma_mid, sma_slow, target_vol in combinations:
         
             print(f"Ticker: {i}/{len(tickers)}, date_span: {k}/{len(dates)} combinaiton: {j}/{len(combinations)}")
             j += 1
 
-            if sma_fast >= sma_slow or sma_slow >= sma_trend:
+            if sma_fast >= sma_mid or sma_mid >= sma_slow:
                 continue
-
+            
             os.makedirs(f"files/{ticker}", exist_ok=True)
 
-
-            sma_df = get_indicators(data, ATR_span, volatility_span, sma_fast, sma_slow, sma_trend)
+            classifier = RegimeClassifier(
+                ATR_window=ATR_span,
+                volatility_span=volatility_span,
+                slow_SMA_window=sma_slow,
+                mid_SMA_window=sma_mid,
+                fast_SMA_window=sma_fast
+            )
+                
+            sma_df = classifier.classify(data.copy())
             
             # print(sma_df["slope"].describe())
             # print(sma_df["volatility"].describe())
             
             sma_df = get_sma_signal(sma_df, stop_loss_level, take_profit_level)
+            
+            print(sma_df["signal"].describe())
+            
             BH_df, r_df, wyniki = run_backtest(ticker, data, sma_df, wyniki, cost_per_trade, slippage_cost, ATR_span, stop_loss_level, take_profit_level, target_vol, BH, R)
 
             get_regime_stats(sma_df)

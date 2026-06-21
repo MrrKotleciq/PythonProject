@@ -83,6 +83,8 @@ def create_trade_log(name, ticker, df, cost):
     
     tab_df = pd.DataFrame(tab)
     
+    print(tab_df["PnL [%]"])
+    
     summary = {
         "Entry Date": "-",
         "Exit Date": "-",
@@ -188,35 +190,48 @@ def load_data(ticker:str, start:str, end:str):
     df = yf.download(ticker, start, end, multi_level_index=False)
     
     return df
-    
-def get_indicators(base_df, ATR_span:int, volatility_span:int, S1:int, S2:int, S3:int):
-    
-    """
-    Creates basic indicators as SMA, ATR, volatility base on data from load_data() function and creates new dataFrame.
-    """
 
-    df = pd.DataFrame(base_df)
+class RegimeClassifier:
+    def __init__(self, ATR_window:int, volatility_span:int, slow_SMA_window:int, mid_SMA_window:int, fast_SMA_window:int):
+        self.ATR_window = ATR_window
+        self.volatility_span = volatility_span
+        self.slow_SMA_window = slow_SMA_window
+        self.mid_SMA_window = mid_SMA_window
+        self.fast_SMA_window = fast_SMA_window
     
-    df["Zwrot"] = df["Close"].pct_change()
-    df["SMA1"] = df["Close"].rolling(S1).mean()
-    df["SMA2"] = df["Close"].rolling(S2).mean()
-    df["SMA3"] = df["Close"].rolling(S3).mean()
-    df["SMA100"] = df["Close"].rolling(100).mean()
-    df["slope"] = df["SMA100"].pct_change(20)
+    def _calculate_trends(self, df):
+        
+        '''Calculates pct.change per day and all SMA's'''
+        
+        df["Zwrot"] = df["Close"].pct_change()
+        df["Zwrot"] = df["Zwrot"].fillna(0)
+        df["SMA1"] = df["Close"].rolling(self.slow_SMA_window).mean()
+        df["SMA2"] = df["Close"].rolling(self.mid_SMA_window).mean()
+        df["SMA3"] = df["Close"].rolling(self.fast_SMA_window).mean()
+        df["SMA100"] = df["Close"].rolling(100).mean()
+        df["slope"] = df["SMA100"].pct_change(20)
+        
+        return df
+
+    def _calculate_metrics(self, df):
+        
+        '''Calculates ATR and volatility'''
+        
+        df["ATR"] = (df["Close"] - df["Close"].shift(1)).abs().rolling(self.ATR_window).mean()
+        df["ATR"] = df["ATR"].fillna(0)
+        df["volatility"] = df["Zwrot"].rolling(self.volatility_span).std()
+        df["volatility"] = df["volatility"].fillna(1)
     
-    df["regime"] = np.where((df["Close"] > df["SMA100"]) & (df["slope"] > 0.01), "Bullish",
+        return df
+    
+    def classify(self, df):
+        self._calculate_trends(df)
+        self._calculate_metrics(df)
+        
+        df["regime"] = np.where((df["Close"] > df["SMA100"]) & (df["slope"] > 0.01), "Bullish",
                             np.where((df["Close"] < df["SMA100"]) & (df["slope"] < -0.01), "Bearish", "Sideways"))
-    
-    df["ATR"] = (df["Close"] - df["Close"].shift(1)).abs().rolling(ATR_span).mean()
-    df["volatility"] = df["Zwrot"].rolling(volatility_span).std()
-    
-    df["Zwrot"] = df["Zwrot"].fillna(0)
-    df["ATR"] = df["ATR"].fillna(0)
-    df["volatility"] = df["volatility"].fillna(1)
-    
-    #print(df)
-    
-    return df
+        
+        return df
 
 def get_sma_signal(df, SL:int, TP:int):
     
@@ -246,7 +261,16 @@ def run_BH(ticker, data, ATR_span:int, CpT:float, SlC:float, wyniki): # CpT - co
     Creates all data for Buy and Hold strategy with given ticker and returns it's dataFrame and resaults appended to given table
     """
     
-    BH_df = get_indicators(data, ATR_span, 20, 12, 25, 100)
+    classifier = RegimeClassifier(
+                ATR_window=ATR_span,
+                volatility_span=20,
+                slow_SMA_window=12,
+                mid_SMA_window=25,
+                fast_SMA_window=100
+            )
+    
+    BH_df = classifier.classify(data.copy())
+    
     BH_df["signal"] = np.where(BH_df.index == BH_df.index[0], 1, 
                                 np.where(BH_df.index == BH_df.index[-2], -1, 0))
     
@@ -281,7 +305,15 @@ def run_rnd(ticker, data, ATR_span:int, CpT:float, SlC:float, wyniki):
     Creates all data for Random strategy with given ticker and returns it's dataFrame and resaults appended to given table
     """
 
-    r_df = get_indicators(data, ATR_span, 20, 12, 25, 100)
+    classifier = RegimeClassifier(
+                ATR_window=ATR_span,
+                volatility_span=20,
+                slow_SMA_window=12,
+                mid_SMA_window=25,
+                fast_SMA_window=100
+            )
+    
+    r_df = classifier.classify(data.copy())
     r_df["signal"] = np.random.randint(-1, 2, size=len(r_df))
 
     r_df["position"] = get_pos_df(r_df)
@@ -417,12 +449,12 @@ def plt_draw(ticker, BH_df, r_df, s_df, BH:bool, R:bool):
                color = colors[prev_regime],
                alpha = 0.15)
 
-    # if BH:
-    #     plt.plot(BH_df["cumulative"], label="Hold")
-    # if R:
-    #     plt.plot(r_df["cumulative"], label="Random")
+    if BH:
+        plt.plot(BH_df["cumulative"], label="Hold")
+    if R:
+        plt.plot(r_df["cumulative"], label="Random")
         
-    # plt.plot(s_df["cumulative"], label="Strategy")
+    plt.plot(s_df["cumulative"], label="Strategy")
 
     plt.ylabel("Wartość")
     plt.xlabel("Dzień")

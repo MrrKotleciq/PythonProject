@@ -2,9 +2,11 @@ import os
 import pandas as pd  
 from pathlib import Path
 
-from my_fun import *
+from old_fun.my_fun import *
 
 def run_backtest(ticker, data, df, wyniki, CpT, SlP, ATR_sp, SL, TP, target_volatility, BH:bool, R:bool):      
+    
+    '''CpT - cost per trade, SlP - slippage'''
 
 ######## Buy and Hold - data
 
