@@ -92,7 +92,7 @@ class PerformanceAnalyzer:
         Oblicza Win Rate i Profit Factor na podstawie zamkniętych transakcji.        
         '''
         
-        trades = self._get_trades
+        trades = self._get_trades()
         
         if len(trades) == 0:
             return {"Win Rate": 0.0, "Profit Factor": 0.0, "Total Trades": 0}
@@ -100,7 +100,7 @@ class PerformanceAnalyzer:
         wins = trades[trades > 0]
         losses = trades[trades <= 0]
         
-        win_rate = len(wins) / len(losses) * 100
+        win_rate = len(wins) / len(trades) * 100
         
         sum_wins = np.sum(wins)
         sum_losses = np.abs(np.sum(losses))

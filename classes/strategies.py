@@ -1,5 +1,5 @@
 import pandas as pd
-from strategy_base import StrategyBase
+from .strategy_base import StrategyBase
 
 class SMAStrategy(StrategyBase):
     '''

@@ -1,6 +1,6 @@
-from data_manager import DataManager
-from indicators import IndicatorLibrary
-from strategies import SMAStrategy, TrenFollowingStategy
+from classes.data_manager import DataManager
+from classes.indicators import IndicatorLibrary
+from classes.strategies import SMAStrategy, TrenFollowingStategy
 from my_fun import *
 import pandas as pd
 
