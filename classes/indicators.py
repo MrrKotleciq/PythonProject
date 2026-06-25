@@ -15,7 +15,7 @@ class IndicatorLibrary:
             'slope_sma' : 100
         }
         self.atr_period = atr_period
-        self.column_mapping = {}
+        self.column_mapping = {}   
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger("Indicators")
     

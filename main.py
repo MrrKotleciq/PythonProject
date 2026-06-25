@@ -1,72 +1,63 @@
 from classes.data_manager import DataManager
 from classes.indicators import IndicatorLibrary
-from classes.strategies import SMAStrategy, TrenFollowingStategy
+from classes.strategies import SMAStrategy, TrendFollowingStrategy
+from classes.analyzer import PerformanceAnalyzer
+from classes.visualizer import Visualizer
 from my_fun import *
 import pandas as pd
 
-def run_validation_test(ticker, sma_config, test_name):
-    print(f"\n{'='*20} TEST: {test_name} {'='*20}")
-    
-    # 1. Inicjacja
-    dm = DataManager(start_date="2020-01-01", end_date="2024-01-01")
-    lib = IndicatorLibrary()
-    
-    # 2. Pobieranie danych
-    
-    data = dm.get_clean_data(ticker)
-    if data.empty:
-        print(f"Błąd: Nie pobrano danych dla {ticker}")
-        return
-    
-    # 3. Generowanie wskaźników z konkretną konfiguracją
-    
-    # Przekazujemy sma_config, aby sprawdzić czy dynamiczne nazwy działają
-    df = lib.prepare_all_indicators(data, sma_config)
-    mapping = lib.column_mapping
-    
-    # 4. Weryfikacja
-    print(f"Konfiguracja SMA: {sma_config}")
-    print(f"Mapowanie kolumn: {lib.column_mapping}")
-    
-    # Sprawdzamy czy klyuczowe kolumny istnieją 
-    required_col = ['ATR', 'Slope', 'Regime']
-    all_present = all(col in df.columns for col in required_col)
-    
-    if all_present:
-        print("✅ SUKCES: Wszystkie kluczowe wskaźniki zostały obliczone.")
-    else:
-        missing = [col for col in required_col if col not in df.columns]
-        print(f"❌ BŁĄD: Brakuje kolumn: {missing}")
-        
-    # Wyświetlanie fragmentu danych dla wizualnej kontroli
-    # Wybieramy tylko kolumny z mapowania + kluczowe wskaźniki
-    cols_to_show  = list(lib.column_mapping.values()) + required_col + ['Close']
-    print(f"\nFragment danych:\n", df[cols_to_show].tail())
-    
-    
-############################################################
+all_reports = {}
+all_curves = {}
 
-    
-if __name__ == "__main__":
-    ticker_to_test = "AAPL"
-    
-    default_config = {
-        'short' : 14,
-        'mid' : 30,
-        'long' : 150,
+default_config = {
+        'short' : 5,
+        'mid' : 15,
+        'long' : 50,
         'slope_sma' : 100
     }
+
+# 1. Przygotowanie danych i wskaźników (To już masz z Dnia 1)
+data_manager = DataManager(start_date="2020-01-01", end_date="2024-01-01")
+df = data_manager.get_clean_data("AAPL")
+
+indicators = IndicatorLibrary()
+df = indicators.prepare_all_indicators(df, default_config)
+mapping = indicators.column_mapping # <--- TO JEST KLUCZ!
+
+results_df = pd.DataFrame(index=df.index)
+
+# 2. Wybór strategii (Tutaj dzieje się magia OOP)
+# Możemy łatwo przełączać strategie:
+# strategy = SMAStrategy("Prosta SMA", {})
+
+# --- TEST STRATEGII ---
+
+strategies_to_test = [
+    TrendFollowingStrategy("Trend Follower", {}),
+    SMAStrategy("SMA Cross", {})
+]
+
+for strat in strategies_to_test:
     
-    # TEST 1: Ustawienia domyślne (Standard)
-    run_validation_test(ticker_to_test, default_config, "Domyślna Konfiguracja")
+    # 1. Generowanie sygnałów na kopii danych
+    df_strat = strat.generate_signals(df.copy(), mapping)
     
-    # TEST 2: Customowe ustawienia (Optymalizacja)
+    # 2. Obliczanie pozycji
     
-    custom_config = {
-        'short' : 20,
-        'mid' : 50,
-        'long' : 200,
-        'slope_sma' : 150
-    }
+    df_strat = calculate_position(df_strat)
     
-    run_validation_test(ticker_to_test, custom_config, "Customowa Konfiguracja")
+    # 3. Analiza wydajności
+    analyzer = PerformanceAnalyzer(df_strat, strat.name)
+    all_reports[strat.name] = analyzer.get_full_report()
+    all_curves[strat.name] = analyzer.equity_curve_pct
+    
+# 4. Tworzenie finalnej tabeli porównawczej
+
+comparison_df = pd.DataFrame(all_reports).T
+print("\n" + "="*30)
+print("REPORT WYDAJNOŚCI STRATEGII")
+print("="*30)
+print(comparison_df)
+
+viz = Visualizer()
+viz.plot_results(all_curves, analyzer.benchmark_curve_pct)

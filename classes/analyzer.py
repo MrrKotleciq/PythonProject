@@ -18,6 +18,8 @@ class PerformanceAnalyzer:
         self.strategy_returns = daily_returns * self.df['Position']
         
         self.equity_curve = (1 + self.strategy_returns).cumprod()
+        self.equity_curve_pct = self.equity_curve * 100
+        self.benchmark_curve_pct = (1 + daily_returns).cumprod() * 100
         
     
     def calculate_cagr(self) -> float:

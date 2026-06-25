@@ -21,34 +21,6 @@ def calculate_position(df: pd.DataFrame) -> pd.DataFrame:
     df['Position'] = df['Position'].ffill().fillna(0)
     
     return df
-
-
-def plot_results(df_prices: pd.DataFrame, results_df: pd.DataFrame):
-    '''
-    Wykres porównujący procentową zmianę ceny (Buy & Hold)
-    z wynikami strategii inwestycyjnej.
-    '''
-    
-    plt.figure(figsize=(12, 6))
-    
-    # 1. Obliczanie Benchmarku (Buy & Hold)
-    benchmark = (df_prices['Close'] / df_prices.loc[df_prices.index[0], 'Close'] - 1) * 100
-    plt.plot(benchmark, label='Buy & Hold (Benchmark)', color='gray', alpha=0.6, linestyle='--')
-    
-    # 2. Wizualizacja strategii z results_df
-    
-    for strategy_name in results_df.columns:
-        plt.plot(results_df[strategy_name], label=strategy_name, linewidth=2)
-    
-    plt.title(f'Wyniki Backtestu: {strategy_name} vs Benchmark', fontsize=14)
-    plt.xlabel('Data')
-    plt.ylabel('Zmiana Procentowa (%)')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.axhline(0, color='black', lw=1) # Linia zero
-    
-    plt.tight_layout()
-    plt.show()
     
     
 def get_strategy_returns(df: pd.DataFrame, strategy_name: str):
