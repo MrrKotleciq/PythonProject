@@ -3,6 +3,14 @@ import pandas as pd
 import numpy as np
 
 class Visualizer:
+    
+    '''
+    Ma tylko jedną metode statyczną która:
+    Generuje wykres porównawczy: Equity Curve i Drawdown.
+        :param equity_curves_pct: Słownik {'Nazwa Strategii': equity_curve_series}
+        :param benchmark_curve_pct: Seria z wynikiem Buy & Hold.
+    '''
+        
     @staticmethod
     def plot_results(equity_curves_pct: dict, benchmark_curve_pct: pd.Series):
         

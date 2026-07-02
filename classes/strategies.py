@@ -3,7 +3,7 @@ from .strategy_base import StrategyBase
 
 class SMAStrategy(StrategyBase):
     '''
-    SMA strategy
+    Generuje sygnały według strategii SMA
     '''
 
     def generate_signals(self, df: pd.DataFrame, column_mapping: dict) -> pd.DataFrame:
@@ -42,6 +42,11 @@ class SMAStrategy(StrategyBase):
     
     
 class TrendFollowingStrategy(StrategyBase):
+    
+    '''
+    Generuje sygnały według TrendFollowingStrategy (regime based strategy).
+    '''
+    
     
     def generate_signals(self, df: pd.DataFrame, column_mapping: dict) -> pd.DataFrame:
         

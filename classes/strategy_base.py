@@ -3,7 +3,7 @@ import pandas as pd
 
 class StrategyBase(ABC):
     
-    ''' Klasa bazowa strategii '''
+    ''' Klasa bazowa dla wszystkich strategii. Wymusza stworzenie metody generate_signals. '''
     
     def __init__(self, name: str, params: dict = None):
         

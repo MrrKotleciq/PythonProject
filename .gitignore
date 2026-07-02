@@ -211,3 +211,4 @@ settings.json
 *.xlsx
 to_check.txt
 PythonProject.code-workspace
+generate_atlas.py

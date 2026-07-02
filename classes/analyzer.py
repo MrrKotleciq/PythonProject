@@ -3,6 +3,12 @@ import numpy as np
 
 class PerformanceAnalyzer:
     
+    '''
+    Clasa z metodami dla różnych wskaźników takich jak cagr, sharpie_ratio, win_ratem. 
+    Zawiera metodę generującą pełny raport.
+    '''
+    
+    
     def __init__(self, df_with_position: pd.DataFrame, strategy_name: str):
         
         '''
