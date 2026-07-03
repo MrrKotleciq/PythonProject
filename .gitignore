@@ -212,3 +212,5 @@ settings.json
 to_check.txt
 PythonProject.code-workspace
 generate_atlas.py
+graph/
+.atlas_config

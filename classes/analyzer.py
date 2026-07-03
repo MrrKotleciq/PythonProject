@@ -4,7 +4,7 @@ import numpy as np
 class PerformanceAnalyzer:
     
     '''
-    Clasa z metodami dla różnych wskaźników takich jak cagr, sharpie_ratio, win_ratem. 
+    Clasa z metodami dla różnych wskaźników takich jak cagr, sharpe_ratio, win_ratem. 
     Zawiera metodę generującą pełny raport.
     '''
     
@@ -56,10 +56,10 @@ class PerformanceAnalyzer:
         drawdown = (self.equity_curve - rolling_max) / rolling_max
         return drawdown.min() * 100 # Zwraca wartość ujemną
     
-    def calculate_sharpie_ratio(self, risk_free_rate=0.0) -> float:
+    def calculate_sharpe_ratio(self, risk_free_rate=0.0) -> float:
         
         '''
-        Wskaźnik Sharpie'a - stosunek zysku do ryzyka.
+        Wskaźnik Sharpe'a - stosunek zysku do ryzyka.
         '''
         
         mean_return = self.strategy_returns.mean()
@@ -68,9 +68,9 @@ class PerformanceAnalyzer:
         if std_return == 0: return 0.0
         
         # Anuualizacja
-        sharpie = (mean_return - risk_free_rate) / std_return * np.sqrt(252)
+        sharpe = (mean_return - risk_free_rate) / std_return * np.sqrt(252)
         
-        return sharpie
+        return sharpe
     
     def _get_trades(self):
         
@@ -108,7 +108,7 @@ class PerformanceAnalyzer:
         wins = trades[trades > 0]
         losses = trades[trades <= 0]
         
-        win_rate = len(wins) / len(trades) * 100
+        win_rate = len(wins) / len(trades) * 100     
         
         sum_wins = np.sum(wins)
         sum_losses = np.abs(np.sum(losses))
@@ -130,10 +130,10 @@ class PerformanceAnalyzer:
         trade_metrics = self.calculate_trade_metrics()
         
         return pd.Series({
-            "CAGR (%)": self.calculate_cagr(),
-            "Max Drawdown (%)": self.calculate_max_drawdown(),
-            "Sharpie Ratio": self.calculate_sharpie_ratio(),
-            "Win Rate (%)": trade_metrics["Win Rate"],
+            "CAGR [%]": self.calculate_cagr(),
+            "Max Drawdown [%]": self.calculate_max_drawdown(),
+            "Sharpe Ratio": self.calculate_sharpe_ratio(),
+            "Win Rate [%]": trade_metrics["Win Rate"],
             "Profit Factor": trade_metrics["Profit Factor"],
             "Total Trades": trade_metrics["Total Trades"]
         })

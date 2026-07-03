@@ -19,6 +19,7 @@ def calculate_position(df: pd.DataFrame) -> pd.DataFrame:
     })
     
     df['Position'] = df['Position'].ffill().fillna(0)
+    df.loc[df.index[-1], 'Position'] = 0
     
     return df
     

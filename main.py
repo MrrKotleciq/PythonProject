@@ -8,21 +8,22 @@ import pandas as pd
 
 all_reports = {}
 all_curves = {}
+warmup_days = 252
 
 default_config = {
-        'short' : 5,
-        'mid' : 15,
-        'long' : 50,
-        'slope_sma' : 100
+        'short' : 14,
+        'mid' : 20,
+        'long' : 110,
+        'slope_sma' : 70
     }
 
-# 1. Przygotowanie danych i wskaźników (To już masz z Dnia 1)
-data_manager = DataManager(start_date="2020-01-01", end_date="2024-01-01")
+# 1. Przygotowanie danych i wskaźników 
+data_manager = DataManager(start_date="2016-01-01", end_date="2022-01-01")
 df = data_manager.get_clean_data("AAPL")
 
 indicators = IndicatorLibrary()
 df = indicators.prepare_all_indicators(df, default_config)
-mapping = indicators.column_mapping # <--- TO JEST KLUCZ!
+mapping = indicators.column_mapping
 
 results_df = pd.DataFrame(index=df.index)
 
@@ -46,8 +47,12 @@ for strat in strategies_to_test:
     
     df_strat = calculate_position(df_strat)
     
+    # ucinam warmup days
+    df_strat_to_analize = df_strat.iloc[warmup_days-1:]
+    df_strat_to_analize.loc[df_strat_to_analize.index[0], 'Position'] = 0
+    
     # 3. Analiza wydajności
-    analyzer = PerformanceAnalyzer(df_strat, strat.name)
+    analyzer = PerformanceAnalyzer(df_strat_to_analize, strat.name)
     all_reports[strat.name] = analyzer.get_full_report()
     all_curves[strat.name] = analyzer.equity_curve_pct
     
